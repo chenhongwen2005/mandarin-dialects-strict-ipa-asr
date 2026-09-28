@@ -23,6 +23,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src
 
 import numpy as np
 import torch
+
+# 关闭 Gradio 遥测外呼：离线/受限网络环境下，后台上报线程会因无法连接服务器而
+# 抛出 httpx.ConnectTimeout（Thread-3），刷红屏但不影响功能。设为 False 即可抑制。
+os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 import gradio as gr
 
 from utils import (
