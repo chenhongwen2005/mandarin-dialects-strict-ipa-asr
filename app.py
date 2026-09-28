@@ -63,9 +63,25 @@ def load():
     a = parse_args()
     a.vocab_path = resolve_local_path(a.vocab_path)
     a.ipa2tone_path = resolve_local_path(a.ipa2tone_path)
+    # 未显式指定 --ckpt 时，自动尝试定位 weights/best.pt（README 指定的权重位置），
+    # 避免静默跑一个随机初始化的无效模型。
+    if not a.ckpt:
+        cand = resolve_local_path("weights/best.pt")
+        if os.path.exists(cand):
+            a.ckpt = cand
+            print(f"[app] 未指定 --ckpt，自动使用 {a.ckpt}")
     a.ckpt = resolve_local_path(a.ckpt)
     if a.model_dir and not os.path.isabs(a.model_dir) and os.path.isdir(resolve_local_path(a.model_dir)):
         a.model_dir = resolve_local_path(a.model_dir)
+    if not a.ckpt:
+        print("=" * 64)
+        print("【警告】未加载任何微调权重：--ckpt 为空且 weights/best.pt 不存在")
+        print("    当前运行的是【随机初始化】模型，识别结果将是无意义的乱码。")
+        print("    请先下载权重：")
+        print("      modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/")
+        print("    再以权重启动：")
+        print("      python app.py --ckpt weights/best.pt")
+        print("=" * 64)
     model, token2id, dev = build_model(a.vocab_path, a.ckpt, a.model_dir, freeze_encoder=True)
     id2tok = {v: k for k, v in token2id.items()}
     ipa2tone = json.load(open(a.ipa2tone_path, encoding="utf-8")) if a.ipa2tone_path else {}

@@ -185,6 +185,19 @@ pip install -r requirements.txt
 > 因此**无需 `cd` 到项目根即可从任意工作目录启动**；传入绝对路径则原样使用。
 > 基础模型 `iic/SenseVoiceSmall` 为 ModelScope 模型 id，首次运行会自动下载并缓存。
 
+> ### 【重要】必须先加载微调权重，否则输出是无意义乱码
+>
+> 本项目**不把模型权重放入仓库**（单独发布于 ModelScope）。若启动演示或推理时**未通过 `--ckpt` 指定权重**，
+> 程序会静默使用一个**随机初始化**的模型——对音频吐出的 IPA 将是无意义的，且常出现音节反复重复，
+> 看起来"识别出来很多"，但根本不是真实读音。
+> 例如《静夜思》上阕只有约 10 个音节，未加载权重时却可能输出 30+ 个重复乱码音节。
+>
+> 正确做法（权重需先下载到 `weights/best.pt`，见下节）：
+> ```bash
+> python app.py --ckpt weights/best.pt
+> ```
+> 若未指定 `--ckpt`，`app.py` 会自动尝试定位 `weights/best.pt`；两者皆无时，启动会打印醒目的【警告】提示。
+
 ### 1. 获取模型权重
 
 模型权重**不放入本仓库**，请从 ModelScope 下载（由作者单独发布），例如：
@@ -214,8 +227,11 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ### 4. Gradio 演示（上传音频 + 自动比对差异）
 
+> 务必通过 `--ckpt` 加载权重（见上方【重要】提示），否则识别结果为随机初始化的无意义乱码。
+
 ```bash
 # 可从任意目录启动（相对路径均按项目根解析）；--ckpt 可传相对或绝对路径
+# 未传 --ckpt 时会自动尝试 weights/best.pt
 python app.py --ckpt weights/best.pt --port 7860
 # 浏览器打开 http://127.0.0.1:7860
 ```
