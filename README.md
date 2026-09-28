@@ -190,7 +190,7 @@ pip install -r requirements.txt
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-得到 `weights/best.pt`（或 `best_tone.pt`）后，通过 `--ckpt` 指定。
+得到 `weights/best.pt` 后，通过 `--ckpt` 指定。（若你自行训练，还会额外产出 `checkpoints/best_tone.pt`，见下「训练指南」）
 
 ### 2. 单条音频推理
 
