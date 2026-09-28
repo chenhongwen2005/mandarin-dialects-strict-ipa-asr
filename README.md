@@ -258,19 +258,30 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 3. 用本仓库 `src/prepare_data.py` 生成训练所需文件：
 
 ```bash
-# zhvoice 子集 -> 严式 IPA 文本 + scp + 合并词表
-python src/prepare_data.py build-zhvoice --metadata zhvoice/metadata.csv \
-    --out data/ --converter path/to/putonghua-ipa-converter
+# 1) zhvoice 子集 -> 严式 IPA 文本 + scp + 词表
+#    --conv_js 指向转换器的 data/putonghua.js；--audio_root 为音频根目录
+python src/prepare_data.py build-zhvoice \
+    --metadata zhvoice/metadata.csv \
+    --audio_root zhvoice/wavs \
+    --conv_js path/to/putonghua-ipa-converter/data/putonghua.js \
+    --out data/zhvoice_ipa --train_n 8993 --val_n 918
 
-# 将自有拼音文本转为 IPA
-python src/prepare_data.py build-mandarin --text data/mandarin_pinyin.text --out data/
+# 2) 将自有带调拼音文本转为 IPA（目录内需含 train/text、val/text）
+python src/prepare_data.py build-mandarin \
+    --text_dir data/mandarin_pinyin \
+    --conv_js path/to/putonghua-ipa-converter/data/putonghua.js \
+    --out data/zhvoice_ipa
 
-# 合并多来源并扩充词表
-python src/prepare_data.py combine --a data/a --b data/b --out data/combined
+# 3) 合并多来源并扩充词表，输出 *_combined 文件
+python src/prepare_data.py combine \
+    --zhvoice_dir data/zhvoice_ipa --mandarin_ipa_dir data/zhvoice_ipa \
+    --out data/combined
 
-# 按倍数扩充训练集（如 1.3×）
-python src/prepare_data.py scale --text data/combined/train.text \
-    --scp data/combined/train.scp --factor 1.3 --out data/ipa130
+# 4) 按倍数扩充训练集（如 1.3×）：以普通话子集为基，混入 zhvoice 数据
+python src/prepare_data.py scale \
+    --mandarin_text data/combined/train_text --mandarin_scp data/combined/train_scp \
+    --zhvoice_text data/zhvoice_ipa/train_text --zhvoice_scp data/zhvoice_ipa/train_scp \
+    --factor 1.3 --out data/ipa130
 ```
 
 生成的 `*.scp`（音频路径）与 `*.text`（IPA 标签）即可作为 `train.py` / `infer.py` 的输入。
