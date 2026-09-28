@@ -185,7 +185,7 @@ pip install -r requirements.txt
 
 ```bash
 # 假设模型已发布，使用 modelscope 下载到本地
-modelscope download --model <你的ModelScope模型ID> --local_dir weights/
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
 得到 `weights/best.pt`（或 `best_tone.pt`）后，通过 `--ckpt` 指定。
