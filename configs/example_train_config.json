@@ -1,0 +1,20 @@
+{
+  "vocab_path": "vocab/vocab_mandarin_ipa_combined.json",
+  "ipa2tone_path": "vocab/vocab_mandarin_ipa_tone_combined.json",
+  "model_dir": "iic/SenseVoiceSmall",
+  "warm_start": "",
+  "train_scp": "data/train.scp",
+  "train_text": "data/train.text",
+  "val_scp": "data/val.scp",
+  "val_text": "data/val.text",
+  "output_dir": "checkpoints",
+  "epochs": 10,
+  "batch_size": 16,
+  "learning_rate": 1e-4,
+  "weight_decay": 1e-4,
+  "grad_clip": 1.0,
+  "max_seconds": 20,
+  "precision": "bf16",
+  "num_workers": 0,
+  "seed": 42
+}

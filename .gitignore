@@ -1,0 +1,49 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ── 虚拟环境 ──
+.venv/
+venv/
+env/
+
+# ── 模型权重（不随仓库发布，请单独上传 ModelScope）──
+*.pt
+*.onnx
+*.bin
+checkpoints/
+weights/
+*.ckpt
+
+# ── 训练 / 评测数据与中间产物（数据不公开）──
+data/
+datasets/
+*.scp
+*.wav.scp
+*.text
+*.mp3
+*.wav
+*.flac
+*.ogg
+feat_cache*/
+tb/
+runs/
+*.log
+
+# ── 缓存 ──
+.cache/
+modelscope_cache/
+~/.cache/modelscope/
+
+# ── 编辑器 / 系统 ──
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── 本地实验结果（按需手动保留，不入库）──
+results/val_*.log
