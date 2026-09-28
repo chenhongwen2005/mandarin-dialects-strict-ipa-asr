@@ -39,6 +39,7 @@ from utils import (
     compute_exact_match,
     compute_token_acc,
     load_vocab,
+    resolve_local_path,
 )
 from dataset import WavDataset, collate_wav
 
@@ -99,7 +100,7 @@ def eval_split(model, loader, ctc, device, tag="val", verbose=False,
         preds.extend(ctc_greedy_decode(lp))
         refs.extend([t[:l].tolist() for t, l in zip(tp, tlens)])
     if id2token is None:
-        _, id2token = load_vocab(DEFAULT_CONFIG["vocab_path"])
+        _, id2token = load_vocab(resolve_local_path(DEFAULT_CONFIG["vocab_path"]))
     ter = compute_ter(preds, refs)
     acc = compute_exact_match(preds, refs)
     tacc = compute_token_acc(preds, refs)
@@ -125,6 +126,12 @@ def main():
     for k, v in vars(args).items():
         if k in cfg and v is not None:
             cfg[k] = v
+
+    for _k in ("vocab_path", "ipa2tone_path", "warm_start", "train_scp", "train_text",
+               "val_scp", "val_text", "output_dir"):
+        cfg[_k] = resolve_local_path(cfg[_k])
+    if cfg["model_dir"] and not os.path.isabs(cfg["model_dir"]) and os.path.isdir(resolve_local_path(cfg["model_dir"])):
+        cfg["model_dir"] = resolve_local_path(cfg["model_dir"])
 
     random.seed(cfg["seed"])
     torch.manual_seed(cfg["seed"])

@@ -11,6 +11,20 @@ import numpy as np
 import torch
 
 
+# 项目根：本文件位于 <root>/src/utils.py，故根目录为上一级
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def resolve_local_path(p, base=None):
+    """将相对路径以「项目根」为基准解析为绝对路径，支持从任意目录启动。
+
+    绝对路径 / 空串原样返回；base 省略时以 PROJECT_ROOT 为基准。
+    """
+    if not p or os.path.isabs(p):
+        return p
+    return os.path.join(base or PROJECT_ROOT, p)
+
+
 def ctc_greedy_decode(
     log_probs: torch.Tensor, blank_id: int = 0
 ) -> List[List[int]]:

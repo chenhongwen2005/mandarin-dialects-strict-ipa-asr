@@ -181,6 +181,10 @@ pip install -r requirements.txt
 
 ## 快速开始
 
+> 所有脚本均按「项目根目录」（即仓库根）解析 `vocab/`、`data/`、`weights/`、`checkpoints/` 等相对路径，
+> 因此**无需 `cd` 到项目根即可从任意工作目录启动**；传入绝对路径则原样使用。
+> 基础模型 `iic/SenseVoiceSmall` 为 ModelScope 模型 id，首次运行会自动下载并缓存。
+
 ### 1. 获取模型权重
 
 模型权重**不放入本仓库**，请从 ModelScope 下载（由作者单独发布），例如：
@@ -195,7 +199,7 @@ modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ### 2. 单条音频推理
 
 ```bash
-cd mandarin-ipa-asr
+# 无需 cd 到项目根：脚本会按自身位置解析 vocab/data 等相对路径，可从任意目录启动
 python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
 # 输出：空格分隔的严式 IPA 音节序列
 ```
@@ -211,6 +215,7 @@ python src/infer.py --eval --ckpt weights/best.pt \
 ### 4. Gradio 演示（上传音频 + 自动比对差异）
 
 ```bash
+# 可从任意目录启动（相对路径均按项目根解析）；--ckpt 可传相对或绝对路径
 python app.py --ckpt weights/best.pt --port 7860
 # 浏览器打开 http://127.0.0.1:7860
 ```

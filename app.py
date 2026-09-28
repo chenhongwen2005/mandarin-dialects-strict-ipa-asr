@@ -19,8 +19,7 @@ import json
 import os
 import sys
 
-_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(_PROJECT_ROOT, "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 
 import numpy as np
 import torch
@@ -38,6 +37,7 @@ from utils import (
     load_audio,
     build_model,
     score_utterance,
+    resolve_local_path,
 )
 
 MAX_SECONDS = 30.0
@@ -59,24 +59,13 @@ def parse_args():
 STATE = {}
 
 
-def _resolve_local(p):
-    """相对路径以项目根（app.py 所在目录）为基准解析，支持从任意目录启动。
-
-    绝对路径 / 空串原样返回；model_dir 这类「模型 id」若不存在于本地目录则不动，
-    保持由 funasr 按模型 id 下载的语义。
-    """
-    if not p or os.path.isabs(p):
-        return p
-    return os.path.join(_PROJECT_ROOT, p)
-
-
 def load():
     a = parse_args()
-    a.vocab_path = _resolve_local(a.vocab_path)
-    a.ipa2tone_path = _resolve_local(a.ipa2tone_path)
-    a.ckpt = _resolve_local(a.ckpt)
-    if a.model_dir and not os.path.isabs(a.model_dir) and os.path.isdir(os.path.join(_PROJECT_ROOT, a.model_dir)):
-        a.model_dir = os.path.join(_PROJECT_ROOT, a.model_dir)
+    a.vocab_path = resolve_local_path(a.vocab_path)
+    a.ipa2tone_path = resolve_local_path(a.ipa2tone_path)
+    a.ckpt = resolve_local_path(a.ckpt)
+    if a.model_dir and not os.path.isabs(a.model_dir) and os.path.isdir(resolve_local_path(a.model_dir)):
+        a.model_dir = resolve_local_path(a.model_dir)
     model, token2id, dev = build_model(a.vocab_path, a.ckpt, a.model_dir, freeze_encoder=True)
     id2tok = {v: k for k, v in token2id.items()}
     ipa2tone = json.load(open(a.ipa2tone_path, encoding="utf-8")) if a.ipa2tone_path else {}

@@ -33,6 +33,7 @@ from utils import (
     build_model,
     score_utterance,
     compute_tone_accuracy_ipa,
+    resolve_local_path,
 )
 
 MODEL_DIR = "iic/SenseVoiceSmall"
@@ -80,6 +81,10 @@ def main():
             typ = str if isinstance(v, str) else int
             ap.add_argument(f"--{k}", type=typ, default=v)
     args = ap.parse_args()
+    for _k in ("vocab_path", "ipa2tone_path", "ckpt", "wav", "val_scp", "val_text", "lm_data"):
+        setattr(args, _k, resolve_local_path(getattr(args, _k)))
+    if args.model_dir and not os.path.isabs(args.model_dir) and os.path.isdir(resolve_local_path(args.model_dir)):
+        args.model_dir = resolve_local_path(args.model_dir)
 
     model, token2id, dev = build(args.vocab_path, args.ckpt, args.model_dir)
     id2tok = {v: k for k, v in token2id.items()}
