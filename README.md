@@ -1,5 +1,7 @@
 # 普通话严式国际音标（IPA）语音识别
 
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
+
 基于 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 编码器，在其上挂载一个
 **严式国际音标（IPA）CTC 解码头**，通过全量微调，实现普通话的「音节 + 声调」级语音转写。
 
