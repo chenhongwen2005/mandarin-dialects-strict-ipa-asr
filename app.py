@@ -53,6 +53,8 @@ def parse_args():
     ap.add_argument("--port", type=int, default=7860)
     ap.add_argument("--share", action="store_true")
     ap.add_argument("--max_seconds", type=float, default=MAX_SECONDS)
+    ap.add_argument("--beam", type=int, default=BEAM_SIZE,
+                    help="识别页集束搜索宽度；设为 0 则退回贪心解码。")
     return ap.parse_args()
 
 
@@ -88,6 +90,7 @@ def load():
     STATE.update(
         model=model, token2id=token2id, id2tok=id2tok,
         ipa2tone=ipa2tone, dev=dev, max_seconds=a.max_seconds,
+        beam=a.beam,
     )
     tag = os.path.basename(a.ckpt) if a.ckpt else "随机初始化(无权重)"
     print(f"[app] 模型就绪 device={dev} ckpt={tag}")
@@ -119,8 +122,10 @@ def decode_ids(audio_path: str, beam: int = 0):
 def predict_ipa(audio_path: str):
     if audio_path is None:
         return "", "未提供音频"
-    ids, s = decode_ids(audio_path, 0)
-    return s, f"共识别 {len(ids)} 个 IPA 音节"
+    beam = STATE.get("beam", BEAM_SIZE) or 0
+    ids, s = decode_ids(audio_path, beam)
+    mode = f"集束({beam})" if beam and beam > 1 else "贪心"
+    return s, f"共识别 {len(ids)} 个 IPA 音节（{mode}）"
 
 
 # ── 差异高亮配色 ────────────────────────────────────────────────────────────────
