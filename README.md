@@ -337,3 +337,15 @@ python src/prepare_data.py scale \
 - 基础模型：FunAudioLLM, *SenseVoice*.
 - 严式 IPA 转换：nk2028, *putonghua-ipa-converter*（CC0）.
 - 训练语料：fighting41love, *zhvoice*.
+
+---
+
+<p align="center">
+<a href="README.md"><img alt="%E4%B8%AD%E6%96%87" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-brightgreen"></a>
+<a href="README_en.md"><img alt="English" src="https://img.shields.io/badge/English-blue"></a>
+<a href="README_ja.md"><img alt="%E6%97%A5%E6%9C%AC%E8%AA%9E" src="https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-blue"></a>
+<a href="README_ko.md"><img alt="%ED%95%9C%EA%B5%AD%EC%96%B4" src="https://img.shields.io/badge/%ED%95%9C%EA%B5%AD%EC%96%B4-blue"></a>
+<a href="README_vi.md"><img alt="Ti%E1%BA%BFng_Vi%E1%BB%87t" src="https://img.shields.io/badge/Ti%E1%BA%BFng_Vi%E1%BB%87t-blue"></a>
+<a href="README_fr.md"><img alt="Fran%C3%A7ais" src="https://img.shields.io/badge/Fran%C3%A7ais-blue"></a>
+<a href="README_ru.md"><img alt="%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-blue"></a>
+</p>
