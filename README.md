@@ -330,6 +330,18 @@ python src/prepare_data.py scale \
 
 ---
 
+## 测试
+
+仓库含一个**不依赖模型权重 / 基础模型**的轻量冒烟测试，用于守护路径解析、词表加载与 CTC 解码等关键逻辑（即此前修复的若干 bug）：
+
+```bash
+python tests/smoke.py
+```
+
+并通过 GitHub Actions 在每次 push / PR 到 `main` 时自动运行（见 `.github/workflows/ci.yml`）：安装最小依赖 → 编译检查全部源码 → 执行冒烟测试。
+
+---
+
 ## 许可证
 
 代码与词表以 **CC BY-NC-SA 4.0** 发布（见 [LICENSE](LICENSE)）。
