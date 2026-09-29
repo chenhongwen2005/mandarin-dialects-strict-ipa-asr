@@ -19,6 +19,13 @@ Mô hình xuất ra chuỗi âm tiết IPA hẹp phân cách bằng khoảng tr�
 > Giấy phép: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Trọng số mô hình và dữ liệu huấn luyện không đi kèm kho mã nguồn; được lấy riêng qua ModelScope và quy trình xây dựng dữ liệu cục bộ. Xem chi tiết bên dưới.
 
+
+## Quy trình xử lý của mô hình
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">Hình: quy trình đầu‑cuối từ âm thanh đến chuỗi âm tiết IPA hẹp.</p>
+
 ---
 
 ## Tính năng

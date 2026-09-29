@@ -19,6 +19,13 @@ The model outputs space-separated narrow IPA syllable sequences, each syllable c
 > License: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Model weights and training data are not shipped with the code repository; they are obtained separately via ModelScope and a local data-build pipeline, respectively. See below.
 
+
+## Model Pipeline
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">Figure: end-to-end pipeline from audio to narrow IPA syllable sequence.</p>
+
 ---
 
 ## Features

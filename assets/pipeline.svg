@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 412" font-family="-apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="960" height="412" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="480" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#1f2328">模型处理流程 (Model Pipeline)</text>
+  <text x="480" y="50" text-anchor="middle" font-size="12" fill="#57606a">普通话严式 IPA 语音识别 — 基于 SenseVoiceSmall 微调</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#57606a"/>
+    </marker>
+  </defs>
+
+  <!-- ============ Stage 1: Input (gray) ============ -->
+  <g>
+    <rect x="20" y="78" width="138" height="200" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+    <path d="M20,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#6e7781"/>
+    <text x="89" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">① 语音输入</text>
+    <text x="89" y="140" text-anchor="middle" font-size="10.5" fill="#1f2328">语音信号 · 16 kHz</text>
+    <text x="89" y="160" text-anchor="middle" font-size="10.5" fill="#1f2328">原始波形张量</text>
+    <text x="89" y="180" text-anchor="middle" font-size="10" fill="#57606a">（不做峰值归一化）</text>
+    <text x="89" y="200" text-anchor="middle" font-size="10" fill="#57606a">与训练数据一致</text>
+  </g>
+
+  <!-- ============ Stage 2: WavFrontend (blue, frozen) ============ -->
+  <g>
+    <rect x="174" y="78" width="138" height="200" rx="10" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.5"/>
+    <path d="M174,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#0969da"/>
+    <text x="243" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">② WavFrontend</text>
+    <text x="243" y="140" text-anchor="middle" font-size="10.5" fill="#1f2328">log-Mel 滤波器组</text>
+    <text x="243" y="160" text-anchor="middle" font-size="10.5" fill="#1f2328">dither = 0（确定性）</text>
+    <text x="243" y="180" text-anchor="middle" font-size="10.5" fill="#1f2328">fp32 · 无梯度</text>
+    <text x="243" y="200" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0969da">★ 冻结</text>
+  </g>
+
+  <!-- ============ Stage 3: Conformer Encoder (blue, frozen) ============ -->
+  <g>
+    <rect x="328" y="78" width="138" height="200" rx="10" fill="#ddf4ff" stroke="#54aeff" stroke-width="1.5"/>
+    <path d="M328,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#0969da"/>
+    <text x="397" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">③ Conformer 编码器</text>
+    <text x="397" y="140" text-anchor="middle" font-size="10.5" fill="#1f2328">来自 SenseVoiceSmall</text>
+    <text x="397" y="160" text-anchor="middle" font-size="10.5" fill="#1f2328">512 维声学表征</text>
+    <text x="397" y="180" text-anchor="middle" font-size="10.5" fill="#1f2328">bf16 推理加速</text>
+    <text x="397" y="200" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0969da">★ 冻结</text>
+  </g>
+
+  <!-- ============ Stage 4: IPA CTC Head (orange, trainable) ============ -->
+  <g>
+    <rect x="482" y="78" width="138" height="200" rx="10" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.5"/>
+    <path d="M482,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#bc4c00"/>
+    <text x="551" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">④ IPA CTC 头 ★</text>
+    <text x="551" y="136" text-anchor="middle" font-size="10.5" fill="#1f2328">Linear 512→512</text>
+    <text x="551" y="156" text-anchor="middle" font-size="10.5" fill="#1f2328">ReLU · Dropout(0.1)</text>
+    <text x="551" y="176" text-anchor="middle" font-size="10.5" fill="#1f2328">Linear 512→1427</text>
+    <text x="551" y="196" text-anchor="middle" font-size="10.5" fill="#1f2328">1427 类严式 IPA</text>
+    <path d="M482,250 h138 v18 a10,10 0 0 1 -10,10 h-118 a10,10 0 0 1 -10,-10 z" fill="#953800"/>
+    <text x="551" y="268" text-anchor="middle" font-size="10.5" font-weight="700" fill="#ffffff">★ 可训练 / Trainable</text>
+  </g>
+
+  <!-- ============ Stage 5: CTC Decode (purple) ============ -->
+  <g>
+    <rect x="636" y="78" width="138" height="200" rx="10" fill="#fbefff" stroke="#c297ff" stroke-width="1.5"/>
+    <path d="M636,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#8250df"/>
+    <text x="705" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">⑤ CTC 解码</text>
+    <text x="705" y="140" text-anchor="middle" font-size="10.5" fill="#1f2328">贪心 / 集束(默认)</text>
+    <text x="705" y="160" text-anchor="middle" font-size="10.5" fill="#1f2328">去 &lt;blank&gt; 符号</text>
+    <text x="705" y="180" text-anchor="middle" font-size="10.5" fill="#1f2328">合并相邻重复</text>
+    <text x="705" y="200" text-anchor="middle" font-size="10.5" fill="#1f2328">→ token 序列</text>
+  </g>
+
+  <!-- ============ Stage 6: Output (green) ============ -->
+  <g>
+    <rect x="790" y="78" width="138" height="200" rx="10" fill="#dafbe1" stroke="#4ac26b" stroke-width="1.5"/>
+    <path d="M790,88 a10,10 0 0 1 10,-10 h118 a10,10 0 0 1 10,10 v26 h-138 z" fill="#1a7f37"/>
+    <text x="859" y="101" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffffff">⑥ 输出</text>
+    <text x="859" y="140" text-anchor="middle" font-size="10.5" fill="#1f2328">严式 IPA 音节序列</text>
+    <text x="859" y="160" text-anchor="middle" font-size="10.5" fill="#1f2328">（自带调值符号）</text>
+    <text x="859" y="180" text-anchor="middle" font-size="10.5" fill="#1f2328">可选 ipa2tone 映射</text>
+    <text x="859" y="200" text-anchor="middle" font-size="10.5" fill="#1f2328">→ 调类 1–5</text>
+  </g>
+
+  <!-- ============ Arrows ============ -->
+  <line x1="160" y1="176" x2="172" y2="176" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="314" y1="176" x2="326" y2="176" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="468" y1="176" x2="480" y2="176" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="622" y1="176" x2="634" y2="176" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <line x1="776" y1="176" x2="788" y2="176" stroke="#57606a" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+  <!-- ============ Bottom strip: tensor flow ============ -->
+  <rect x="20" y="298" width="920" height="62" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.2"/>
+  <text x="34" y="320" font-size="11.5" font-weight="700" fill="#1f2328">张量维度流：</text>
+  <text x="128" y="320" font-size="11" fill="#1f2328">waveform (1, N)  →  fbank (T, 80)  →  encoder_out (T, 512)  →  logits (T, 1427)  →  log_softmax  →  CTC 解码  →  IPA 序列</text>
+  <text x="34" y="344" font-size="10.5" fill="#57606a">训练：CTC 头新建并训练，Conformer 编码器解冻做全量微调；   推理：前端 / 编码器固定（★冻结），仅 CTC 头产出权重。</text>
+
+  <!-- ============ Legend ============ -->
+  <rect x="34" y="378" width="12" height="12" rx="2" fill="#0969da"/>
+  <text x="52" y="388" font-size="10.5" fill="#1f2328">冻结（前端 / 编码器）</text>
+  <rect x="220" y="378" width="12" height="12" rx="2" fill="#bc4c00"/>
+  <text x="238" y="388" font-size="10.5" fill="#1f2328">可训练（CTC 头 ★）</text>
+  <rect x="392" y="378" width="12" height="12" rx="2" fill="#6e7781"/>
+  <text x="410" y="388" font-size="10.5" fill="#1f2328">输入 / 输出</text>
+  <rect x="500" y="378" width="12" height="12" rx="2" fill="#8250df"/>
+  <text x="518" y="388" font-size="10.5" fill="#1f2328">解码过程</text>
+</svg>

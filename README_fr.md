@@ -19,6 +19,13 @@ Le modèle produit une séquence de syllabes IPA étroites séparées par des es
 > Licence : **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Les poids du modèle et les données d'entraînement ne sont pas fournis avec le dépôt de code ; ils s'obtiennent séparément via ModelScope et un pipeline local de construction des données. Voir ci-dessous.
 
+
+## Pipeline du modèle
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">Figure : pipeline de bout en bout de l'audio à la séquence de syllabes IPA étroites.</p>
+
 ---
 
 ## Caractéristiques

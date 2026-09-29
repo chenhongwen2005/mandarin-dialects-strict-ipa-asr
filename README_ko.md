@@ -19,6 +19,13 @@
 > 라이선스: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > 모델 가중치와 학습 데이터는 코드 저장소에 포함되지 않으며, 각각 ModelScope와 로컬 데이터 구축 절차를 통해 별도로 얻습니다. 자세한 내용은 아래를 참조하세요.
 
+
+## 모델 처리 흐름
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">그림: 오디오에서 엄식 IPA 음절 열까지의 End-to-End 처리 흐름.</p>
+
 ---
 
 ## 특징

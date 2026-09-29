@@ -19,6 +19,13 @@
 > ライセンス：**CC BY-NC-SA 4.0**（Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International）。
 > モデル重みと学習データはコードリポジトリには同梱されず、それぞれ ModelScope およびローカルのデータ構築フローから取得します。詳細は後述。
 
+
+## モデルの処理フロー
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">図：音声から狭い IPA 音節列への End-to-End 処理フロー。</p>
+
 ---
 
 ## 特徴

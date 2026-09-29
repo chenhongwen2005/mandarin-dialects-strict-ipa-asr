@@ -21,6 +21,13 @@
 > 许可证：**CC BY-NC-SA 4.0**（知识共享署名-非商业性使用-相同方式共享 4.0 国际）。
 > 模型权重与训练数据不随代码仓库发布，分别通过 ModelScope 与本地数据构建流程获取，详见下文。
 
+
+## 模型处理流程
+
+![pipeline](assets/pipeline.svg)
+
+<p align="center">图：语音 → 严式 IPA 音节序列的端到端处理流程。</p>
+
 ---
 
 ## 特性
@@ -42,6 +49,8 @@
 mandarin-ipa-asr/
 ├── LICENSE                                  # CC BY-NC-SA 4.0 全文
 ├── README.md
+├── assets/
+│   └── pipeline.svg                          # 模型处理流程示意图
 ├── requirements.txt                         # 实测依赖版本
 ├── .gitignore
 ├── app.py                                   # Gradio 演示（识别 + 自动比对差异）
