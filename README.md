@@ -2,6 +2,16 @@
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
+<p align="center">
+<a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-brightgreen"></a>
+<a href="README_en.md"><img alt="English" src="https://img.shields.io/badge/English-blue"></a>
+<a href="README_ja.md"><img alt="日本語" src="https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-blue"></a>
+<a href="README_ko.md"><img alt="한국어" src="https://img.shields.io/badge/%ED%95%9C%EA%B5%AD%EC%96%B4-blue"></a>
+<a href="README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Ti%E1%BA%BFng_Vi%E1%BB%87t-blue"></a>
+<a href="README_fr.md"><img alt="Français" src="https://img.shields.io/badge/Fran%C3%A7ais-blue"></a>
+<a href="README_ru.md"><img alt="Русский" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-blue"></a>
+</p>
+
 基于 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 编码器，在其上挂载一个
 **严式国际音标（IPA）CTC 解码头**，通过全量微调，实现普通话的「音节 + 声调」级语音转写。
 
