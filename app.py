@@ -3,8 +3,9 @@
 
 功能：
   1. 识别：上传或录制音频 -> 输出严式 IPA 音节序列（含声调调值）。
-  2. 比对：上传音频并（可选）填入参考 IPA 文本 -> 自动做逐音节声调对齐与差异高亮；
-     即使不填参考文本，也会自动用「贪心 / 集束搜索」两套解码结果互相比对差异。
+  2. 比对：上传音频并填入中文/参考 IPA -> 与转换器生成的真值逐音节声调对齐与差异高亮；
+     无参考时自动用「贪心 / 集束搜索」两套解码结果互相比对差异。
+  3. 语音特征分析：逐音节拆解 IPA，标注调值与每个附加符号的语音学特征并汇总统计。
 
 用法（在项目根目录）:
   python app.py --ckpt <权重路径> [--share] [--port 7860]
@@ -39,6 +40,8 @@ from utils import (
     score_utterance,
     resolve_local_path,
 )
+from converter import text_to_ipa
+from ipa_analysis import analyze_ipa, to_html
 
 MAX_SECONDS = 30.0
 BEAM_SIZE = 12
@@ -90,7 +93,7 @@ def load():
     STATE.update(
         model=model, token2id=token2id, id2tok=id2tok,
         ipa2tone=ipa2tone, dev=dev, max_seconds=a.max_seconds,
-        beam=a.beam,
+        beam=a.beam, vocab_set=set(token2id.keys()),
     )
     tag = os.path.basename(a.ckpt) if a.ckpt else "随机初始化(无权重)"
     print(f"[app] 模型就绪 device={dev} ckpt={tag}")
@@ -185,15 +188,28 @@ def diff_html(a_toks, b_toks, a_label, b_label):
     )
 
 
-def compare(audio_path, ref_text):
-    """自动比对差异：有参考则与参考对齐；无参考则贪心 vs 集束自动互比。"""
+def compare(audio_path, ref_source, ref_text):
+    """自动比对差异：与转换器生成的真值（中文文本）或直接填入的 IPA 对齐；
+    无参考则贪心 vs 集束自动互比。"""
     if audio_path is None:
         return "", "", "请先上传音频", "—", ""
     greedy_ids, greedy_str = decode_ids(audio_path, 0)
     beam_ids, beam_str = decode_ids(audio_path, BEAM_SIZE)
 
     if ref_text and ref_text.strip():
-        ref_tokens = ref_text.strip().split()
+        if ref_source == "转换器(中文)":
+            ref_tokens_full, ref_ipa, oov = text_to_ipa(ref_text)
+            # 过滤不在模型词表内的参考音节，避免把「超出输出空间」误判为识别错误
+            ref_tokens = [t for t in ref_tokens_full if t in STATE["vocab_set"]]
+            oov_n = len(ref_tokens_full) - len(ref_tokens)
+            oov_note = ""
+            if oov_n or oov:
+                oov_note = (f"\n注：{oov_n} 个参考音节不在模型词表内（已排除统计）；"
+                            f"查无读音的汉字：{' '.join(oov) or '无'}")
+        else:
+            ref_tokens = ref_text.strip().split()
+            ref_ipa = " ".join(ref_tokens)
+            oov_note = ""
         res = score_utterance(greedy_ids, ref_tokens, STATE["id2tok"], STATE["ipa2tone"])
         align = alignment_html(res["states"])
         counts = {"correct": 0, "tone_wrong": 0, "wrong": 0, "extra": 0, "missing": 0}
@@ -205,9 +221,11 @@ def compare(audio_path, ref_text):
             f"声调准确率: {res['tone_acc']:.4f}\n"
             f"细分 — 完全正确:{counts['correct']}  调错:{counts['tone_wrong']}  "
             f"错读:{counts['wrong']}  多读:{counts['extra']}  漏读:{counts['missing']}"
+            f"{oov_note}"
         )
         auto_diff = diff_html(greedy_str.split(), beam_str.split(), "贪心", f"集束({BEAM_SIZE})")
-        return greedy_str, res["ref_str"], align, summary, auto_diff
+        ref_display = ref_ipa if ref_source == "转换器(中文)" else res["ref_str"]
+        return greedy_str, ref_display, align, summary, auto_diff
 
     # 无参考：自动用贪心 vs 集束两套解码互比差异
     auto_diff = diff_html(greedy_str.split(), beam_str.split(), "贪心", f"集束({BEAM_SIZE})")
@@ -215,12 +233,35 @@ def compare(audio_path, ref_text):
     return greedy_str, beam_str, "", summary, auto_diff
 
 
+def analyze_ipa_features(audio_path, ipa_text):
+    """IPA 语音特征分析：上传音频识别后分析，或直接粘贴 IPA 分析。"""
+    if audio_path is None and not (ipa_text and ipa_text.strip()):
+        return "", "请提供音频，或在右侧文本框直接粘贴严式 IPA。"
+    if audio_path is not None:
+        beam = STATE.get("beam", BEAM_SIZE) or 0
+        _, ipa = decode_ids(audio_path, beam)
+        src = "音频识别结果"
+    else:
+        ipa = ipa_text.strip()
+        src = "粘贴的 IPA"
+    a = analyze_ipa(ipa, STATE.get("ipa2tone"))
+    html = to_html(a)
+    parts = [f"分析对象：{src}（共 {a['n']} 个音节）"]
+    if a["feature_counts"]:
+        top = "、".join(f"{zh}×{n}" for zh, n in a["feature_counts"].most_common(6))
+        parts.append(f"主要附加符号特征：{top}")
+    else:
+        parts.append("未检出附加符号（均为基础段 + 调值）")
+    return html, "\n".join(parts)
+
+
 def build_ui():
     with gr.Blocks(title="普通话严式IPA语音识别") as demo:
         gr.Markdown(
             "# 普通话严式国际音标（IPA）语音识别\n\n"
             "基于 SenseVoiceSmall 编码器 + 严式 IPA CTC 头微调。支持上传/录制音频识别，"
-            "并可与参考 IPA 文本自动比对差异（逐音节声调对齐高亮）。"
+            "并可与**转换器生成的真值**自动比对差异（逐音节声调对齐高亮），"
+            "以及逐音节分析 IPA 的附加符号与语音特征。"
         )
         with gr.Tab("识别"):
             audio_in = gr.Audio(label="上传或录制音频", type="filepath",
@@ -230,23 +271,41 @@ def build_ui():
                 out_ipa = gr.Textbox(label="识别结果（严式 IPA）", lines=3)
                 info1 = gr.Textbox(label="信息", lines=1)
             btn1.click(predict_ipa, [audio_in], [out_ipa, info1])
-        with gr.Tab("比对（自动差异）"):
+        with gr.Tab("比对（转换器真值）"):
             audio_in2 = gr.Audio(label="上传或录制音频", type="filepath",
                                 sources=["upload", "microphone"])
+            ref_source = gr.Radio(
+                choices=["转换器(中文)", "直接填IPA"], value="转换器(中文)",
+                label="参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；或直接填空格分隔的 IPA")
             ref_in = gr.Textbox(
-                label="参考文本（可选，空格分隔的 IPA 音节，例如：ɡ̊wa̠n̚˥ x̞wa̠ɪ̯˧˥）",
-                lines=2, placeholder="ɡ̊wa̠n̚˥ x̞wa̠ɪ̯˧˥  （留空则自动用贪心 vs 集束比对）")
+                label="参考文本",
+                lines=2,
+                placeholder="转换器模式：填中文，如「床前明月光，疑是地上霜」  |  直接IPA模式：填空格分隔的 IPA 音节")
             btn2 = gr.Button("识别并比对", variant="primary")
             with gr.Row():
                 out_ipa2 = gr.Textbox(label="识别结果（严式 IPA）", lines=2)
-                out_ref = gr.Textbox(label="参考文本（回声）", lines=2)
-            out_summary = gr.Textbox(label="统计 / 说明", lines=2)
-            out_align = gr.HTML(label="逐音节声调对齐（有参考时）")
+                out_ref = gr.Textbox(label="参考真值（转换器 IPA / 填入 IPA）", lines=2)
+            out_summary = gr.Textbox(label="统计 / 说明", lines=3)
+            out_align = gr.HTML(label="逐音节声调对齐")
             out_auto = gr.HTML(label="自动差异（贪心 vs 集束）")
-            btn2.click(compare, [audio_in2, ref_in],
+            btn2.click(compare, [audio_in2, ref_source, ref_in],
                        [out_ipa2, out_ref, out_align, out_summary, out_auto])
+        with gr.Tab("IPA 语音特征分析"):
+            gr.Markdown("逐音节拆解严式 IPA，标注调值与每个附加符号的语音学特征"
+                        "（舌位前/后移、送气、唇化、清化、唯闭/入声、元音中央化/开闭等），并汇总统计。")
+            with gr.Row():
+                audio_in3 = gr.Audio(label="上传或录制音频（自动识别后分析）", type="filepath",
+                                    sources=["upload", "microphone"])
+                ipa_in = gr.Textbox(label="或直接粘贴严式 IPA（空格分隔）", lines=2,
+                                    placeholder="t͡ʂ̺ʰwɑ̟ŋ̚˧˥ t͡ɕʰjɛ̠n̚˧˥ ...")
+            btn3 = gr.Button("分析", variant="primary")
+            out_feat_html = gr.HTML(label="逐音节特征明细 + 统计")
+            out_feat_summary = gr.Textbox(label="概要", lines=3)
+            btn3.click(analyze_ipa_features, [audio_in3, ipa_in],
+                       [out_feat_html, out_feat_summary])
         gr.Markdown(
             "注：模型权重不随代码发布，请从 ModelScope 下载后通过 `python app.py --ckpt <路径>` 加载。"
+            "「转换器」数据来自 nk2028/putonghua-ipa-converter（CC0），与训练词表同源；"
             "训练数据依据授权不公开，详见 README。"
         )
     return demo
