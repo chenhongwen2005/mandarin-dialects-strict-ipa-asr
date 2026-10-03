@@ -1,7 +1,7 @@
 # 中国語（標準語・広東語・四川語）厳格IPA音声認識 / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
+[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -205,11 +205,16 @@ pip install -r requirements.txt
 
 ### 1. モデル重みの取得
 
-モデル重みは**本リポジトリには含まれない**；ModelScope からダウンロード（作者が別途公開）、例：
+モデル重みは**本リポジトリには含まれない**；GitHub Releases（tag=`weights-v1`）からダウンロード（作者が別途公開）、例：
 
 ```bash
 # モデル公開済みと仮定し、modelscope でローカルへダウンロード
-modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
+# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
+#   base.pt      -> weights/base.pt
+#   cantonese.pt -> out_canto/cantonese.pt
+#   sichuan.pt   -> out_sichuan/sichuan.pt
+# Or just run app.py: it auto-downloads missing weights from Releases.
+# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
 ```
 
 `weights/base.pt` を取得後、`--ckpt` で指定。（独自に学習した場合は追加で `checkpoints/base_tone.pt` が出力される；下の「学習ガイド」参照）

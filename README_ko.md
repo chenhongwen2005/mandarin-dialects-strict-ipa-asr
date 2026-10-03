@@ -1,7 +1,7 @@
 # 중국어(표준어·광둥어·쓰촨어) 엄격 IPA 음성 인식 / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
+[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -203,11 +203,16 @@ pip install -r requirements.txt
 
 ### 1. 모델 가중치 얻기
 
-모델 가중치는 **이 저장소에 없음**; ModelScope에서 다운로드 (저자가 별도 공개), 예:
+모델 가중치는 **이 저장소에 없음**; GitHub Releases(tag=`weights-v1`)에서 다운로드 (저자가 별도 공개), 예:
 
 ```bash
 # 모델이 발행되었다고 가정, modelscope로 로컬 다운로드
-modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
+# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
+#   base.pt      -> weights/base.pt
+#   cantonese.pt -> out_canto/cantonese.pt
+#   sichuan.pt   -> out_sichuan/sichuan.pt
+# Or just run app.py: it auto-downloads missing weights from Releases.
+# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
 ```
 
 `weights/base.pt` 확보 후 `--ckpt`로 지정. (직접 학습하면 추가로 `checkpoints/base_tone.pt`가 생성됨; 아래 “학습 가이드” 참조)

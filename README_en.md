@@ -68,10 +68,15 @@ Switching unloads the previous model from GPU memory, loads the selected weights
 updates the comparison options (dialects hide the Chinese→IPA converter and only accept
 direct IPA input).
 
-Weights are not in the repo. Download the Mandarin model from ModelScope:
+Weights are not in the repo. Download all trained weights from GitHub Releases (tag=`weights-v1`):
 
 ```bash
-modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
+# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
+#   base.pt      -> weights/base.pt
+#   cantonese.pt -> out_canto/cantonese.pt
+#   sichuan.pt   -> out_sichuan/sichuan.pt
+# Or just run app.py: it auto-downloads missing weights from Releases.
+# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
 ```
 
 See [README.md](README.md) (Chinese) for the full guide: training methods, data preparation, environment,

@@ -12,7 +12,7 @@
 
 说明：
   - 推理与训练保持完全一致：原始波形输入、frontend.dither=0、bf16 编码器前向。
-  - 权重不随仓库发布，请从 ModelScope 下载后通过 --ckpt 指定。
+  - 权重不随仓库发布，首次运行会自动从 GitHub Releases（tag=weights-v1）下载；也可手动下载后通过 --ckpt 指定。
 """
 
 import argparse
@@ -126,6 +126,57 @@ def _title_markdown(lang):
     )
 
 
+# ---------------------------------------------------------------------------
+# 模型权重下载（不再依赖 ModelScope）：从 GitHub Releases 拉取
+# ---------------------------------------------------------------------------
+RELEASE_TAG = "weights-v1"
+RELEASE_BASE_URL = (
+    "https://github.com/chenhongwen2005/"
+    "mandarin-dialects-strict-ipa-asr/releases/download/weights-v1"
+)
+
+
+def ensure_weight(ckpt_path):
+    """若权重缺失，则从 GitHub Releases 自动下载；存在则跳过。
+
+    返回 (ok, msg)。下载失败不抛异常，仅返回 ok=False 并给出手动下载链接，
+    由调用方决定是否继续（随机初始化会输出乱码）。资产名取 ckpt 路径的 basename，
+    与 Release 上的文件名一致（base.pt / cantonese.pt / sichuan.pt）。
+    """
+    if os.path.exists(ckpt_path):
+        return True, f"本地已存在：{ckpt_path}"
+    asset = os.path.basename(ckpt_path)
+    url = f"{RELEASE_BASE_URL}/{asset}"
+    os.makedirs(os.path.dirname(os.path.abspath(ckpt_path)), exist_ok=True)
+    try:
+        import urllib.request
+
+        print(f"[download] 未找到本地权重 {ckpt_path}，尝试从 GitHub Releases 下载：")
+        print(f"           {url}")
+        with urllib.request.urlopen(url, timeout=60) as resp:
+            total = int(resp.headers.get("Content-Length", 0) or 0)
+            downloaded = 0
+            chunk = 1 << 20  # 1 MiB
+            with open(ckpt_path, "wb") as f:
+                while True:
+                    buf = resp.read(chunk)
+                    if not buf:
+                        break
+                    f.write(buf)
+                    downloaded += len(buf)
+                    if total:
+                        pct = downloaded * 100 // total
+                        print(f"           {downloaded // (1 << 20)}/{total // (1 << 20)} MiB ({pct}%)",
+                              end="\r")
+            print()
+        return True, f"已下载：{ckpt_path}"
+    except Exception as e:  # noqa: BLE001
+        print(f"[download] ⚠ 自动下载失败：{e}")
+        print(f"           请手动下载后放到 {ckpt_path}：")
+        print(f"           {url}")
+        return False, f"下载失败：{e}"
+
+
 def load_for_language(lang):
     """按语言加载（或热切换）模型到 STATE。支持普通话完整模型与方言 LoRA。"""
     a = get_args()
@@ -153,6 +204,9 @@ def load_for_language(lang):
         a.model_dir = resolve_local_path(a.model_dir)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
+    # 权重缺失时先尝试从 GitHub Releases 自动下载（不再依赖 ModelScope）
+    if not os.path.exists(ckpt_path):
+        ensure_weight(ckpt_path)
     ckpt_missing = not os.path.exists(ckpt_path)
 
     if cfg["model_type"] == "full":
@@ -161,9 +215,9 @@ def load_for_language(lang):
             print("=" * 64)
             print("【警告】未加载任何微调权重：--ckpt 为空且 weights/base.pt 不存在")
             print("    当前运行的是【随机初始化】模型，识别结果将是无意义的乱码。")
-            print("    请先下载权重：")
-            print("      modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/")
-            print("    再以权重启动：")
+            print("    请先从 GitHub Releases 下载权重并放到 weights/base.pt：")
+            print(f"      {RELEASE_BASE_URL}/base.pt")
+            print("    若自动下载失败，可手动下载后以权重启动：")
             print("      python app.py --language mandarin --ckpt weights/base.pt")
             print("=" * 64)
         model, token2id, dev = build_model(vocab_path, ckpt_path, a.model_dir, freeze_encoder=True)
@@ -178,7 +232,9 @@ def load_for_language(lang):
             print("=" * 64)
             print(f"【警告】未加载方言 LoRA 权重：{ckpt_path} 不存在")
             print("    当前运行的是【随机初始化】LoRA，识别结果将是无意义的乱码。")
-            print(f"    请先训练或下载 {lang} 权重，并以 --ckpt 指定。")
+            print(f"    请先从 GitHub Releases 下载 {lang} 权重：")
+            print(f"      {RELEASE_BASE_URL}/{os.path.basename(ckpt_path)}")
+            print(f"    并放到 {ckpt_path}（或重新用 --ckpt 指定）。")
             print("=" * 64)
         else:
             sd = torch.load(ckpt_path, map_location="cpu", weights_only=False)
@@ -485,7 +541,7 @@ def build_ui():
             btn3.click(analyze_ipa_features, [audio_in3, ipa_in],
                        [out_feat_html, out_feat_summary])
         gr.Markdown(
-            "注：模型权重不随代码发布，请从 ModelScope 下载后通过 `python app.py --ckpt <路径>` 加载。"
+            "注：模型权重不随代码发布，首次运行会自动从 GitHub Releases（tag=weights-v1）下载；也可手动下载后通过 `python app.py --ckpt <路径>` 加载。"
             "「转换器」数据来自 nk2028/putonghua-ipa-converter（CC0），与训练词表同源；"
             "训练数据依据授权不公开，详见 README。"
         )

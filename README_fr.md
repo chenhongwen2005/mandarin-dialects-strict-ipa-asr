@@ -1,7 +1,7 @@
 # Reconnaissance vocale IPA stricte du chinois (mandarin, cantonais, sichuanais) / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
+[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -205,11 +205,16 @@ pip install -r requirements.txt
 
 ### 1. Obtenir les poids du modèle
 
-Les poids du modèle **ne sont pas dans ce dépôt** ; téléchargez-les depuis ModelScope (publiés séparément par l'auteur), par ex. :
+Les poids du modèle **ne sont pas dans ce dépôt** ; téléchargez-les depuis GitHub Releases (tag `weights-v1`, publiés séparément par l'auteur), par ex. :
 
 ```bash
 # En supposant que le modèle est publié, utilisez modelscope pour télécharger localement
-modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
+# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
+#   base.pt      -> weights/base.pt
+#   cantonese.pt -> out_canto/cantonese.pt
+#   sichuan.pt   -> out_sichuan/sichuan.pt
+# Or just run app.py: it auto-downloads missing weights from Releases.
+# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
 ```
 
 Après avoir obtenu `weights/base.pt`, spécifiez-le via `--ckpt`. (Si vous entraînez le vôtre, un `checkpoints/base_tone.pt` supplémentaire sera produit ; voir « Guide d'entraînement » ci-dessous)
