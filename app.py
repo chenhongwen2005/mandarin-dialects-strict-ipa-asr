@@ -47,9 +47,44 @@ MAX_SECONDS = 30.0
 BEAM_SIZE = 12
 
 
+# 三语配置：普通话为全量微调底座权重；粤语/四川话为叠加在 SenseVoiceSmall 上的 LoRA 适配器。
+# vocab_size 用于 LoRA 构建方言 CTC 头；use_converter 标记该语言能否用「中文→严式IPA 转换器」做真值。
+LANG_CONFIG = {
+    "mandarin": {
+        "label": "普通话 (Mandarin)",
+        "model_type": "full",
+        "vocab": "vocab/vocab_mandarin_ipa_combined.json",
+        "ipa2tone": "vocab/vocab_mandarin_ipa_tone_combined.json",
+        "ckpt": "weights/best.pt",
+        "use_converter": True,
+    },
+    "cantonese": {
+        "label": "粤语 (Cantonese)",
+        "model_type": "lora",
+        "vocab": "data/cantonese_ipa/vocab_cantonese_ipa_combined.json",
+        "ipa2tone": "data/cantonese_ipa/ipa2tone_cantonese.json",
+        "ckpt": "out_canto/best.pt",
+        "vocab_size": 1580,
+        "use_converter": False,
+    },
+    "sichuan": {
+        "label": "四川话 (Sichuan)",
+        "model_type": "lora",
+        "vocab": "data/sichuan_ipa/vocab_sichuan_ipa_combined.json",
+        "ipa2tone": "data/sichuan_ipa/ipa2tone_sichuan.json",
+        "ckpt": "out_sichuan/best.pt",
+        "vocab_size": 912,
+        "use_converter": False,
+    },
+}
+
+
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ckpt", default="", help="微调权重路径（.pt）。缺省则随机初始化演示链路。")
+    ap.add_argument("--language", default="mandarin",
+                    choices=list(LANG_CONFIG.keys()),
+                    help="选择语言：mandarin=普通话(完整微调) / cantonese=粤语(LoRA) / sichuan=四川话(LoRA)")
+    ap.add_argument("--ckpt", default="", help="微调权重路径（.pt）。缺省则按 --language 自动定位。")
     ap.add_argument("--vocab_path", default="vocab/vocab_mandarin_ipa_combined.json")
     ap.add_argument("--ipa2tone_path", default="vocab/vocab_mandarin_ipa_tone_combined.json")
     ap.add_argument("--model_dir", default="iic/SenseVoiceSmall")
@@ -66,37 +101,71 @@ STATE = {}
 
 def load():
     a = parse_args()
-    a.vocab_path = resolve_local_path(a.vocab_path)
-    a.ipa2tone_path = resolve_local_path(a.ipa2tone_path)
-    # 未显式指定 --ckpt 时，自动尝试定位 weights/best.pt（README 指定的权重位置），
-    # 避免静默跑一个随机初始化的无效模型。
-    if not a.ckpt:
-        cand = resolve_local_path("weights/best.pt")
-        if os.path.exists(cand):
-            a.ckpt = cand
-            print(f"[app] 未指定 --ckpt，自动使用 {a.ckpt}")
-    a.ckpt = resolve_local_path(a.ckpt)
+    lang = a.language
+    cfg = LANG_CONFIG[lang]
+
+    # 未显式覆盖时，按语言取默认 vocab / ipa2tone / ckpt
+    vocab_path = a.vocab_path
+    if vocab_path == "vocab/vocab_mandarin_ipa_combined.json":
+        vocab_path = cfg["vocab"]
+    ipa2tone_path = a.ipa2tone_path
+    if ipa2tone_path == "vocab/vocab_mandarin_ipa_tone_combined.json":
+        ipa2tone_path = cfg["ipa2tone"]
+    ckpt = a.ckpt or cfg["ckpt"]
+
+    vocab_path = resolve_local_path(vocab_path)
+    ipa2tone_path = resolve_local_path(ipa2tone_path)
+    ckpt = resolve_local_path(ckpt)
     if a.model_dir and not os.path.isabs(a.model_dir) and os.path.isdir(resolve_local_path(a.model_dir)):
         a.model_dir = resolve_local_path(a.model_dir)
-    if not a.ckpt:
-        print("=" * 64)
-        print("【警告】未加载任何微调权重：--ckpt 为空且 weights/best.pt 不存在")
-        print("    当前运行的是【随机初始化】模型，识别结果将是无意义的乱码。")
-        print("    请先下载权重：")
-        print("      modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/")
-        print("    再以权重启动：")
-        print("      python app.py --ckpt weights/best.pt")
-        print("=" * 64)
-    model, token2id, dev = build_model(a.vocab_path, a.ckpt, a.model_dir, freeze_encoder=True)
+
+    dev = "cuda" if torch.cuda.is_available() else "cpu"
+    ckpt_missing = (not a.ckpt) and (not os.path.exists(ckpt))
+
+    if cfg["model_type"] == "full":
+        # 普通话：完整微调的 IPA 模型（底座 + IPA 头全量训练）
+        if ckpt_missing:
+            print("=" * 64)
+            print("【警告】未加载任何微调权重：--ckpt 为空且 weights/best.pt 不存在")
+            print("    当前运行的是【随机初始化】模型，识别结果将是无意义的乱码。")
+            print("    请先下载权重：")
+            print("      modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/")
+            print("    再以权重启动：")
+            print("      python app.py --language mandarin --ckpt weights/best.pt")
+            print("=" * 64)
+        model, token2id, dev = build_model(vocab_path, ckpt, a.model_dir, freeze_encoder=True)
+    else:
+        # 粤语 / 四川话：在冻结的 SenseVoiceSmall 上注入 LoRA + 方言 CTC 头
+        from model_cantonese import SenseVoiceIpaLora
+        token2id, _ = load_vocab(vocab_path)
+        model = SenseVoiceIpaLora(
+            vocab_size=cfg["vocab_size"], lora_rank=32, lora_alpha=32
+        ).to(dev)
+        if ckpt_missing:
+            print("=" * 64)
+            print(f"【警告】未加载方言 LoRA 权重：{ckpt} 不存在")
+            print("    当前运行的是【随机初始化】LoRA，识别结果将是无意义的乱码。")
+            print(f"    请先训练或下载 {lang} 权重，并以 --ckpt 指定。")
+            print("=" * 64)
+        else:
+            sd = torch.load(ckpt, map_location="cpu", weights_only=False)
+            state = sd.get("model_state_dict", sd)
+            missing, unexpected = model.load_state_dict(state, strict=False)
+            print(f"[ckpt] 载入 {ckpt}  (missing={len(missing)}, unexpected={len(unexpected)})")
+            if missing:
+                print(f"[ckpt] 未载入键(前10): {missing[:10]}")
+        model = model.eval()
+
     id2tok = {v: k for k, v in token2id.items()}
-    ipa2tone = json.load(open(a.ipa2tone_path, encoding="utf-8")) if a.ipa2tone_path else {}
+    ipa2tone = json.load(open(ipa2tone_path, encoding="utf-8")) if ipa2tone_path and os.path.exists(ipa2tone_path) else {}
     STATE.update(
         model=model, token2id=token2id, id2tok=id2tok,
         ipa2tone=ipa2tone, dev=dev, max_seconds=a.max_seconds,
         beam=a.beam, vocab_set=set(token2id.keys()),
+        language=lang, lang_label=cfg["label"], use_converter=cfg["use_converter"],
     )
-    tag = os.path.basename(a.ckpt) if a.ckpt else "随机初始化(无权重)"
-    print(f"[app] 模型就绪 device={dev} ckpt={tag}")
+    tag = os.path.basename(ckpt) if (a.ckpt or os.path.exists(ckpt)) else "随机初始化(无权重)"
+    print(f"[app] 语言={cfg['label']} 模型就绪 device={dev} ckpt={tag}")
 
 
 @torch.no_grad()
@@ -197,7 +266,7 @@ def compare(audio_path, ref_source, ref_text):
     beam_ids, beam_str = decode_ids(audio_path, BEAM_SIZE)
 
     if ref_text and ref_text.strip():
-        if ref_source == "转换器(中文)":
+        if ref_source == "转换器(中文)" and STATE.get("use_converter"):
             ref_tokens_full, ref_ipa, oov = text_to_ipa(ref_text)
             # 过滤不在模型词表内的参考音节，避免把「超出输出空间」误判为识别错误
             ref_tokens = [t for t in ref_tokens_full if t in STATE["vocab_set"]]
@@ -256,12 +325,15 @@ def analyze_ipa_features(audio_path, ipa_text):
 
 
 def build_ui():
-    with gr.Blocks(title="普通话严式IPA语音识别") as demo:
+    lang_label = STATE.get("lang_label", "普通话 (Mandarin)")
+    use_converter = STATE.get("use_converter", True)
+    with gr.Blocks(title=f"{lang_label} 严式IPA语音识别") as demo:
         gr.Markdown(
-            "# 普通话严式国际音标（IPA）语音识别\n\n"
-            "基于 SenseVoiceSmall 编码器 + 严式 IPA CTC 头微调。支持上传/录制音频识别，"
-            "并可与**转换器生成的真值**自动比对差异（逐音节声调对齐高亮），"
-            "以及逐音节分析 IPA 的附加符号与语音特征。"
+            f"# {lang_label} 严式国际音标（IPA）语音识别\n\n"
+            "基于 SenseVoiceSmall 编码器 + 严式 IPA CTC 头。支持上传/录制音频识别，"
+            "并可与真值自动比对差异（逐音节声调对齐高亮），"
+            "以及逐音节分析 IPA 的附加符号与语音特征。\n\n"
+            "> 切换语言请重启并以 `--language {mandarin|cantonese|sichuan}` 启动。"
         )
         with gr.Tab("识别"):
             audio_in = gr.Audio(label="上传或录制音频", type="filepath",
@@ -274,9 +346,13 @@ def build_ui():
         with gr.Tab("比对（转换器真值）"):
             audio_in2 = gr.Audio(label="上传或录制音频", type="filepath",
                                 sources=["upload", "microphone"])
+            ref_choices = ["转换器(中文)", "直接填IPA"] if use_converter else ["直接填IPA"]
+            ref_value = "转换器(中文)" if use_converter else "直接填IPA"
             ref_source = gr.Radio(
-                choices=["转换器(中文)", "直接填IPA"], value="转换器(中文)",
-                label="参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；或直接填空格分隔的 IPA")
+                choices=ref_choices, value=ref_value,
+                label=("参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；或直接填空格分隔的 IPA"
+                       if use_converter else
+                       "参考来源：请直接填空格分隔的方言严式 IPA（方言暂不支持中文转换器）"))
             ref_in = gr.Textbox(
                 label="参考文本",
                 lines=2,

@@ -1,4 +1,5 @@
-# 표준어 내로(정밀) 국제음성기호(IPA) 음성 인식
+# 중국어(표준어·광둥어·쓰촨어) 엄격 IPA 음성 인식 / Mandarin Chinese and dialects strict IPA speech recognition
+> 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 

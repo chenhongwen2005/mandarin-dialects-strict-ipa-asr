@@ -1,4 +1,5 @@
-# Reconnaissance vocale en IPA étroite (phonétique) du mandarin
+# Reconnaissance vocale IPA stricte du chinois (mandarin, cantonais, sichuanais) / Mandarin Chinese and dialects strict IPA speech recognition
+> 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 

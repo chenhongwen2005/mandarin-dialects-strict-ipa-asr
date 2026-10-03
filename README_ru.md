@@ -1,4 +1,5 @@
-# Распознавание узкой (фонетической) IPA-транскрипции путунхуа
+# Строгий IPA-распознавание речи на китайском (путунхуа, кантонский, сычуаньский) / Mandarin Chinese and dialects strict IPA speech recognition
+> Этот проект теперь поддерживает три языка: путунхуа / кантонский / сычуаньский. Метрики по трём языкам — в [README.md](README.md) и [README_en.md](README_en.md).
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 

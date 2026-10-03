@@ -47,3 +47,9 @@ Thumbs.db
 
 # ── 本地实验结果（按需手动保留，不入库）──
 results/val_*.log
+
+# ── 本地 Python 运行环境（不入库）──
+runtime/
+
+# ── 早期 tiny 测试产物（不入库）──
+out_canto_tiny/

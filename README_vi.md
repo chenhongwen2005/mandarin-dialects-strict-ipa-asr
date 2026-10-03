@@ -1,4 +1,5 @@
-# Nhận dạng giọng nói IPA hẹp (narrow/phonetic) tiếng Phổ Thông
+# Nhận dạng giọng nói IPA nghiêm ngặt tiếng Trung (Phổ thông, Quảng Đông, Tứ Xuyên) / Mandarin Chinese and dialects strict IPA speech recognition
+> 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 

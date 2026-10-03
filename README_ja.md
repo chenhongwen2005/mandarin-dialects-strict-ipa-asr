@@ -1,4 +1,5 @@
-# 普通话ナロー（精密）国際音声記号（IPA）音声認識
+# 中国語（標準語・広東語・四川語）厳格IPA音声認識 / Mandarin Chinese and dialects strict IPA speech recognition
+> 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 

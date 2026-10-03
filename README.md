@@ -1,4 +1,5 @@
-# 普通话严式国际音标（IPA）语音识别
+# 汉语普通话与方言严式IPA语音识别
+# Mandarin Chinese and dialects strict IPA speech recognition
 
 [![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
@@ -12,65 +13,77 @@
 <a href="README_ru.md"><img alt="Русский" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-blue"></a>
 </p>
 
-基于 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 编码器，在其上挂载一个
-**严式国际音标（IPA）CTC 解码头**，通过全量微调，实现普通话的「音节 + 声调」级语音转写。
+基于 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 编码器，挂载**严式国际音标（IPA）CTC 解码头**，
+实现**普通话、粤语、四川话**三种语言的「音节 + 声调」级语音转写。
+
+- **普通话**：完整微调（冻结前端，全量微调编码器 + IPA 头），权重 `weights/best.pt`。
+- **粤语 / 四川话**：在冻结的 SenseVoiceSmall 上叠加 **LoRA 适配器 + 方言 CTC 头**（仅训 LoRA 与方言头），
+  权重分别 `out_canto/best.pt`、`out_sichuan/best.pt`。
 
 模型输出为空格分隔的严式 IPA 音节序列，每个音节自带调值符号（如 `ɡ̊wa̠n̚˥`、`x̞wa̠ɪ̯˧˥`），
-即同时给出声母 / 韵母与声调，适合语音学分析、普通话发音评测、声调教学等场景。
+即同时给出声母 / 韵母与声调，适合语音学分析、发音评测、声调教学等场景。
 
 > 许可证：**CC BY-NC-SA 4.0**（知识共享署名-非商业性使用-相同方式共享 4.0 国际）。
 > 模型权重与训练数据不随代码仓库发布，分别通过 ModelScope 与本地数据构建流程获取，详见下文。
 
 
-## 模型处理流程
+## 三语效果指标（实测）
 
-![pipeline](assets/pipeline.svg)
+各语言在**各自验证集**上解码（贪心），与训练保持完全一致口径（原始波形、`dither=0`、bf16 编码器前向）。
+详细定义与复现命令见 [results/metrics.md](results/metrics.md)。
 
-<p align="center">图：语音 → 严式 IPA 音节序列的端到端处理流程。</p>
+| 语言 | 训练集 | 验证集 | 词表类数 | TER↓ | token 准确率 | 声调准确率 | 整句完全匹配 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **普通话** | 11,691 | 918 | 1,427 | **0.0955** | **0.9145** | **0.9212** | 0.7059 |
+| **粤语** | 8,426 | 1,999 | 1,580 | **0.0881** | 0.8914 | 0.8953 | 0.4612 |
+| **四川话** | 5,869 | 653 | 912 | **0.0829** | 0.9187 | 0.9131 | 0.4196 |
 
----
+> 普通话另有 5918 条合并（大规模）验证集：TER 0.1089 / token 0.8986 / 声调 0.8915 / 整句 0.4439。
+> 三语 TER 均处于 0.083–0.096，声调准确率均 ≥ 0.89，证明「音素 + 声调」联合标注下声调信息无丢失。
+
 
 ## 特性
 
-- **严式 IPA 输出**：采用 [nk2028/putonghua-ipa-converter](https://github.com/nk2028/putonghua-ipa-converter)
-  的 UntPhesoca 严式方案，标注到音素级并保留声调调值。
-- **全量微调**：解冻 SenseVoiceSmall 的 Conformer 编码器与新建 IPA 头一起训练；特征前端冻结、
-  `dither=0` 保证可复现。
-- **标签无关声调指标**：通过 `ipa2tone` 映射表（IPA 音节 → 调类 1–5）计算声调准确率，与具体
-  音素写法无关，便于公平比较。
-- **大规模验证**：在 5918 条合并验证集上实测（见[效果指标](#效果指标大规模验证)）。
+- **三语支持**：普通话（完整微调）+ 粤语 / 四川话（LoRA 适配器），通过 `--language` 一键切换。
+- **严式 IPA 输出**：普通话采用 [nk2028/putonghua-ipa-converter](https://github.com/nk2028/putonghua-ipa-converter)
+  的 UntPhesoca 严式方案；粤语 / 四川话采用 diamoe 方言 IPA 方案（汉字 → 方言罗马字 → 严式 IPA）。
+- **标签无关声调指标**：通过 `ipa2tone` 映射表（IPA 音节 → 调类）计算声调准确率，与具体音素写法无关，便于公平比较。
 - **Gradio 演示**：支持上传 / 录制音频识别，并与参考文本自动比对差异（逐音节声调对齐高亮）。
 
----
 
 ## 目录结构
 
 ```
 mandarin-ipa-asr/
 ├── LICENSE                                  # CC BY-NC-SA 4.0 全文
-├── README.md
-├── assets/
-│   └── pipeline.svg                          # 模型处理流程示意图
-├── requirements.txt                         # 实测依赖版本
+├── README.md / README_*.md                 # 多语言说明
+├── requirements.txt
 ├── .gitignore
-├── app.py                                   # Gradio 演示（识别 + 自动比对差异）
-├── configs/
-│   └── example_train_config.json            # 训练配置示例
+├── app.py                                   # Gradio 演示（--language 切换三语）
+├── configs/example_train_config.json        # 训练配置示例
 ├── vocab/
-│   ├── vocab_mandarin_ipa_combined.json     # IPA 输出词表（1427 类，开放发布）
-│   └── vocab_mandarin_ipa_tone_combined.json# IPA 音节 -> 调类 1-5 映射（开放发布）
+│   ├── vocab_mandarin_ipa_combined.json     # 普通话 IPA 输出词表（1427 类）
+│   └── vocab_mandarin_ipa_tone_combined.json# 普通话 IPA 音节 -> 调类 1-5
 ├── src/
-│   ├── model.py        # SenseVoiceIpa：编码器 + IPA CTC 头
-│   ├── utils.py        # CTC 解码 / 指标 / 对齐 / beam search / 音频加载
-│   ├── dataset.py      # 音频-文本数据集（wav/flac/ogg/mp3）
-│   ├── train.py        # 全量微调训练
-│   ├── infer.py        # 单条推理 + 批量评测（大规模验证）
-│   └── prepare_data.py # 由拼音文本构建 IPA 训练集（数据预处理，不含音频）
-└── results/
-    └── metrics.md       # 实测验证指标与训练曲线
+│   ├── model.py                # SenseVoiceIpa：编码器 + IPA CTC 头（普通话全量微调）
+│   ├── model_cantonese.py     # SenseVoiceIpaLora：LoRA 适配器（粤语/四川话共用）
+│   ├── utils.py                # CTC 解码 / 指标 / 对齐 / 音频加载 / 模型构建
+│   ├── dataset.py              # 音频-文本数据集
+│   ├── train.py / infer.py     # 普通话全量微调训练 / 推理评测
+│   ├── train_cantonese_lora.py # LoRA 训练（方言无关，粤语/四川话共用）
+│   ├── infer_cantonese_lora.py # LoRA 推理评测（方言无关，粤语/四川话共用）
+│   ├── cantonese_g2p.py / sichuan_g2p.py  # 方言汉字 → 严式 IPA
+│   ├── diamoe_dialect_ipa.py  # diamoe 方言 IPA 转换后端
+│   └── prepare_cantonese_data.py / prepare_sichuan_data.py  # 方言数据构建
+├── data/
+│   ├── cantonese_ipa/          # 粤语 scp/text/vocab/ipa2tone
+│   └── sichuan_ipa/            # 四川话 scp/text/vocab/ipa2tone
+├── weights/best.pt             # 普通话微调权重（不入库，ModelScope 下载）
+├── out_canto/best.pt           # 粤语 LoRA 权重
+├── out_sichuan/best.pt         # 四川话 LoRA 权重
+└── results/metrics.md          # 三语实测指标与训练曲线
 ```
 
----
 
 ## 基础模型
 
@@ -79,195 +92,119 @@ mandarin-ipa-asr/
 | 名称 | SenseVoiceSmall（FunAudioLLM / 阿里达摩院） |
 | 来源 | GitHub: [FunAudioLLM/SenseVoice](https://github.com/FunAudioLLM/SenseVoice)；ModelScope: `iic/SenseVoiceSmall` |
 | 结构 | `WavFrontend`（fbank 特征 + 可选 f0） + Conformer 编码器（512 维）+ 原始汉字 CTC 头 |
-| 本项目的改造 | 冻结前端；在其 Conformer 编码器之上挂载新的 **IPA CTC 头**（见下），原汉字头不再使用 |
+| 本项目的改造 | 冻结前端；在 Conformer 编码器之上挂载新的 **IPA CTC 头**；粤语/四川话再叠加 **LoRA 适配器** |
 
 > 基础模型权重在首次运行时由 ModelScope 自动下载并缓存，无需手动准备。
 
----
 
 ## 训练方法
 
-1. **初始化**：加载预训练 SenseVoiceSmall 的 `WavFrontend` 与 `encoder`（原汉字 CTC 头丢弃），
-   新建 IPA CTC 头 `ctc_head = Linear(512,512) → ReLU → Dropout(0.1) → Linear(512, vocab)`。
-2. **冻结策略**：`WavFrontend` 始终冻结、`dither` 固定为 0（关闭随机加噪，保证特征确定性）；
-   编码器与 IPA 头**解冻并全量微调**（亦支持仅训练头）。
-3. **损失与优化**：`CTCLoss(blank=0)`；AdamW（`lr=1e-4`, `weight_decay=1e-4`）；
-   `CosineAnnealingLR`（`T_max = steps × epochs`）；梯度裁剪 1.0。
-4. **精度**：bf16 混合精度（`autocast` 仅作用于编码器前向，特征与损失保持 fp32）。
-5. **权重保存**：`best.pt`（验证集 TER 最低）、`best_tone.pt`（声调准确率最高）。
-6. **兼容旧权重**：推理 / 续训时自动将旧版权重中残留的头命名映射为 `ctc_head.*`，避免静默丢头。
+### 普通话：完整微调
+1. 加载预训练 SenseVoiceSmall 的 `WavFrontend` 与 `encoder`（原汉字 CTC 头丢弃），新建 IPA CTC 头。
+2. `WavFrontend` 始终冻结、`dither=0`；编码器与 IPA 头解冻并全量微调。
+3. `CTCLoss(blank=0)`；AdamW（`lr=1e-4`）；`CosineAnnealingLR`；梯度裁剪 1.0；bf16 混合精度。
+4. 保存 `best.pt`（TER 最低）、`best_tone.pt`（声调最高）。
 
----
+### 粤语 / 四川话：LoRA 适配器
+1. 复用 SenseVoiceSmall 的 `WavFrontend` + `encoder` 前向（均冻结）。
+2. 在编码器 4 类 Linear（qk-v / out / ff-w1 / ff-w2）上注入 LoRA（rank=32, alpha=32）。
+3. 新建**方言 IPA CTC 头**（`vocab_size` = 方言词表类数）。
+4. 仅训练 LoRA 低秩参数 + 方言 CTC 头（底座全程冻结），显存占用小、训练快。
+
 
 ## 训练数据
 
-| 项目 | 数量 |
-| --- | --- |
-| 训练集 | **11,691** 条（普通话朗读；由 zhvoice 普通话子集约 8,993 条按 1.3× 复用/扩充得到） |
-| 验证集 | **918** 条（普通话朗读，与训练集互斥） |
-| 标签 | 每条为空格分隔的严式 IPA 音节序列（由拼音经 nk2028/putonghua-ipa-converter 转换） |
-| IPA 词表 | 1,427 类（含 `<blank>`/`<unk>`） |
+| 语言 | 训练集 | 验证集 | IPA 词表 | 说明 |
+| --- | --- | --- | --- | --- |
+| 普通话 | 11,691 | 918（一甲） / 5,918（合并） | 1,427 | zhvoice 普通话子集 → nk2028 UntPhesoca 严式 IPA |
+| 粤语 | 8,426 | 1,999 | 1,580 | 粤语口语句库 → diamoe 方言 IPA（宽/严式） |
+| 四川话 | 5,869 | 653 | 912 | 四川话（成渝片）口语句库 → diamoe 方言 IPA |
 
-> 原始 zhvoice 语料规模约 **900 小时、3200+ 说话人、约 112.98 万条文本**；
-> 本项目仅使用其中朗读质量较高的普通话子集构造训练/验证集，并转换为严式 IPA。
+> 原始语料规模与授权见各数据源仓库；本项目仅使用其中朗读/口语句库子集，转换为严式 IPA。
 
----
-
-## 模型参数
-
-| 参数 | 数值 |
-| --- | --- |
-| 总参数量 | **234,993,874** |
-| 全量微调可训练参数 | **222,131,699**（编码器 + IPA 头；前端与原汉字头冻结） |
-| 仅推理（头可训练、编码器冻结） | 994,707 |
-| 编码器维度 | 512 |
-| IPA 输出词表 | 1,427 |
-| 声调映射条目（ipa2tone） | 1,425（`<blank>`/`<unk>` 除外） |
-
----
-
-## 数据集来源与链接
-
-| 数据 / 工具 | 用途 | 许可 | 链接 |
-| --- | --- | --- | --- |
-| **zhvoice** | 训练语料（普通话朗读子集） | 见仓库 | https://github.com/fighting41love/zhvoice |
-| **putonghua-ipa-converter** | 拼音 → 严式 IPA 转换（scheme 2, UntPhesoca） | CC0 | https://github.com/nk2028/putonghua-ipa-converter |
-| **SenseVoiceSmall** | 预训练基础模型 | 见仓库 | https://github.com/FunAudioLLM/SenseVoice（ModelScope `iic/SenseVoiceSmall`） |
-
----
-
-## 效果指标（大规模验证）
-
-解码与训练完全一致（原始波形输入、dither=0、bf16 编码器前向）。指标定义见
-[`results/metrics.md`](results/metrics.md)。
-
-### 918 条一级甲等（一甲）普通话验证语料
-
-| 指标 | 数值 |
-| --- | --- |
-| TER（音节错误率，越低越好） | **0.0955** |
-| ACC（整句完全匹配） | 0.7059 |
-| TACC（token 正确率） | 0.9145 |
-| 声调准确率（标签无关） | **0.9212** |
-
-### 5918 条合并验证集（大规模验证）
-
-= 5000 条 zhvoice 真实场景 mp3 + 918 条普通话朗读。zhvoice 为真实场景、领域更杂、噪声更多，
-故整句 ACC 低于一甲普通话验证语料属预期；声调识别仍保持高水平。
-
-| 指标 | 数值 |
-| --- | --- |
-| TER（音节错误率，越低越好） | **0.1089** |
-| ACC（整句完全匹配） | 0.4439 |
-| TACC（token 正确率） | 0.8986 |
-| 声调准确率（标签无关） | **0.8915** |
-
-> 说明：声调准确率与拼音方案下的同类模型相当（同框架下拼音头声调约 0.92，本 IPA 头 0.89–0.92），
-> 证明在「音素 + 声调」联合标注下，声调信息并未丢失。
-
----
 
 ## 安装与环境（均实测）
 
-| 依赖 | 版本 | 说明 |
-| --- | --- | --- |
-| Python | **3.9.13** | 推荐 3.9（3.8–3.11 应可运行，已实测 3.9.13） |
-| CUDA | **12.8** | 训练/推理需 NVIDIA GPU；纯 CPU 可推理但较慢 |
-| torch | 2.7.0+cu128 | 与 CUDA 12.8 对应 |
-| torchaudio | 2.7.0+cu128 | |
-| funasr | 1.4.16 | 加载 SenseVoiceSmall |
-| modelscope | 1.32.0 | 自动下载基础模型 |
-| transformers | 4.43.0 | |
-| numpy | 1.23.4 | |
-| editdistance | 0.6.2 | 指标计算 |
-| tqdm | 4.64.1 | 进度条 |
-| soundfile | 0.12.1 | 音频读写 |
-| gradio | 4.24.0 | 演示界面 |
-| librosa | 0.9.2 | （可选）数据预处理 |
-| ffmpeg | 2025-08-23 | 解码 mp3（需在 PATH 中） |
-
-安装：
+| 依赖 | 版本 |
+| --- | --- |
+| Python | 3.9.13（3.8–3.11 应可运行） |
+| CUDA | 12.8 |
+| torch / torchaudio | 2.7.0+cu128 |
+| funasr | 1.4.16 |
+| modelscope | 1.32.0 |
+| transformers | 4.43.0 |
+| numpy | 1.23.4 |
+| editdistance | 0.6.2 |
+| tqdm | 4.64.1 |
+| soundfile | 0.12.1 |
+| gradio | 4.24.0 |
+| librosa | 0.9.2（可选） |
+| ffmpeg | 2025-08-23（需在 PATH 中） |
 
 ```bash
 pip install -r requirements.txt
 # ffmpeg 需单独安装并加入 PATH（Windows 可用 https://www.gyan.dev/ffmpeg/ 或 scoop/apt 等）
 ```
 
-**设备需求**：训练建议 ≥ 16 GB 显存（bf16 下 234M 参数全量微调 + 激活）；推理仅需数 GB，
-单条音频 CPU 亦可（速度较慢）。
+**设备需求**：普通话全量微调建议 ≥ 16 GB 显存；LoRA 训练数 GB 即可；推理仅需数 GB，单条音频 CPU 亦可。
 
----
 
 ## 快速开始
 
-> 所有脚本均按「项目根目录」（即仓库根）解析 `vocab/`、`data/`、`weights/`、`checkpoints/` 等相对路径，
-> 因此**无需 `cd` 到项目根即可从任意工作目录启动**；传入绝对路径则原样使用。
+> 所有脚本均按「项目根目录」解析 `vocab/`、`data/`、`weights/`、`out_*` 等相对路径，无需 `cd` 到项目根。
 > 基础模型 `iic/SenseVoiceSmall` 为 ModelScope 模型 id，首次运行会自动下载并缓存。
-
-> ### 【重要】必须先加载微调权重，否则输出是无意义乱码
->
-> 本项目**不把模型权重放入仓库**（单独发布于 ModelScope）。若启动演示或推理时**未通过 `--ckpt` 指定权重**，
-> 程序会静默使用一个**随机初始化**的模型——对音频吐出的 IPA 将是无意义的，且常出现音节反复重复，
-> 看起来"识别出来很多"，但根本不是真实读音。
-> 例如《静夜思》上阕只有约 10 个音节，未加载权重时却可能输出 30+ 个重复乱码音节。
->
-> 正确做法（权重需先下载到 `weights/best.pt`，见下节）：
-> ```bash
-> python app.py --ckpt weights/best.pt
-> ```
-> 若未指定 `--ckpt`，`app.py` 会自动尝试定位 `weights/best.pt`；两者皆无时，启动会打印醒目的【警告】提示。
 
 ### 1. 获取模型权重
 
-模型权重**不放入本仓库**，请从 ModelScope 下载（由作者单独发布），例如：
+模型权重**不放入本仓库**，请从 ModelScope 下载（由作者单独发布）：
 
 ```bash
-# 假设模型已发布，使用 modelscope 下载到本地
+# 普通话完整模型
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
+# 粤语 / 四川话 LoRA 权重另见仓库 Release / 说明
 ```
-
-得到 `weights/best.pt` 后，通过 `--ckpt` 指定。（若你自行训练，还会额外产出 `checkpoints/best_tone.pt`，见下「训练指南」）
 
 ### 2. 单条音频推理
 
 ```bash
-# 无需 cd 到项目根：脚本会按自身位置解析 vocab/data 等相对路径，可从任意目录启动
+# 普通话
 python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
-# 输出：空格分隔的严式 IPA 音节序列
+
+# 粤语（LoRA，复用通用推理脚本）
+bash infer_cantonese_lora.sh "path/to/audio.wav"
+
+# 四川话（LoRA）
+bash infer_sichuan_lora.sh "path/to/audio.wav"
 ```
 
 ### 3. 批量评测（验证指标）
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
-    --val_scp data/val.scp --val_text data/val.text --limit 0
-# 输出 TER / ACC / TACC / 声调准确率
+python src/infer.py --eval --ckpt weights/best.pt --val_scp data/val.scp --val_text data/val.text
+bash infer_cantonese_lora.sh eval      # -> out_canto/preds_val.txt + TER/token/tone
+bash infer_sichuan_lora.sh eval        # -> out_sichuan/preds_val.txt + TER/token/tone
 ```
 
-### 4. Gradio 演示（上传音频 + 自动比对差异）
-
-> 务必通过 `--ckpt` 加载权重（见上方【重要】提示），否则识别结果为随机初始化的无意义乱码。
-> 「识别」页默认使用集束搜索（`--beam`，默认 12）以降低插入/重复错误；`--beam 0` 可退回贪心解码。
+### 4. Gradio 演示（三语切换）
 
 ```bash
-# 可从任意目录启动（相对路径均按项目根解析）；--ckpt 可传相对或绝对路径
-# 未传 --ckpt 时会自动尝试 weights/best.pt
+# 默认普通话
 python app.py --ckpt weights/best.pt --port 7860
-# 浏览器打开 http://127.0.0.1:7860
+
+# 切换为粤语 / 四川话（方言 LoRA）
+python app.py --language cantonese --port 7860
+python app.py --language sichuan  --port 7860
 ```
 
 - **识别**标签页：上传或录制音频 → 输出严式 IPA。
-- **比对（转换器真值）**标签页：上传音频并填入**中文文本**即可——内置转换器（nk2028/putonghua-ipa-converter，CC0，与训练词表同源的 UntPhesoca 严式）会把中文实时转为严式 IPA 作为真值，与识别结果逐音节声调对齐并高亮差异（正确/调错/错读/多读/漏读）；也可切换为「直接填 IPA」模式手动输入空格分隔的 IPA；不填参考则自动用「贪心 vs 集束搜索」互比差异。
-- **IPA 语音特征分析**标签页：上传音频（自动识别后分析）或直接粘贴严式 IPA → 逐音节拆解并标注调值与每个**附加符号**的语音学特征（舌位前/后移、送气、唇化、清化、唯闭/入声、元音中央化/开闭等），并给出附加符号与调值/调类的汇总统计。
+- **比对**标签页：上传音频并填入参考 → 逐音节声调对齐并高亮差异（普通话支持「中文→IPA 转换器」真值；
+  方言请直接填空格分隔的方言严式 IPA）。
+- **IPA 语音特征分析**标签页：上传音频或粘贴 IPA → 逐音节拆解并标注调值与附加符号的语音学特征。
 
----
 
 ## 训练指南
 
-1. 准备数据（见下「数据使用说明」），得到 `train.scp` / `train.text` / `val.scp` / `val.text`
-   （格式：`uid 音频路径` 与 `uid 空格分隔的IPA音节`）。
-2. 运行：
-
+### 普通话（完整微调）
 ```bash
 python src/train.py \
     --train_scp data/train.scp --train_text data/train.text \
@@ -277,69 +214,44 @@ python src/train.py \
     --output_dir checkpoints --epochs 10 --batch_size 16
 ```
 
-也可将参数写入 `configs/example_train_config.json` 后直接：
-
+### 粤语 / 四川话（LoRA）
 ```bash
-python src/train.py $(python -c "import json,sys; c=json.load(open('configs/example_train_config.json')); print(' '.join(f'--{k} {v}' for k,v in c.items()))")
+# 粤语
+./train_cantonese_lora.sh            # 训练（若 last.pt 存在则自动续训）
+./train_cantonese_lora.sh fresh      # 清空旧权重，从头训练
+./train_cantonese_lora.sh eval       # 只评测
+
+# 四川话（复用同一通用 LoRA 训练脚本，仅数据/输出目录不同）
+./train_sichuan_lora.sh
+./train_sichuan_lora.sh fresh
+./train_sichuan_lora.sh eval
 ```
 
-- 如需从拼音全量微调权重热启动：`--warm_start weights/pinyin_ft.pt`（头维度不同会自动跳过、随机初始化）。
-- 输出 `checkpoints/best.pt`（TER 最低）与 `checkpoints/best_tone.pt`（声调最高）。
-
----
 
 ## 数据使用说明（数据不公开）
 
 出于授权与体量考虑，**训练数据不直接发布**。你可按以下步骤自行重建等价数据集：
 
-1. 下载 **zhvoice** 语料（https://github.com/fighting41love/zhvoice），解压得到音频与拼音文本。
-2. 克隆 **putonghua-ipa-converter**（https://github.com/nk2028/putonghua-ipa-converter），
-   用其 `data/putonghua.js`（scheme 2 = UntPhesoca 严式）将拼音转为严式 IPA。
-3. 用本仓库 `src/prepare_data.py` 生成训练所需文件：
+1. **普通话**：下载 [zhvoice](https://github.com/fighting41love/zhvoice)，用
+   [putonghua-ipa-converter](https://github.com/nk2028/putonghua-ipa-converter)（scheme 2 = UntPhesoca 严式）
+   将拼音转为严式 IPA，再用 `src/prepare_data.py` 生成 `train/val.scp` 与 `text`。
+2. **粤语 / 四川话**：用 `src/prepare_cantonese_data.py` / `src/prepare_sichuan_data.py` 从各自的
+   口语句库（汉字列）经 `diamoe_dialect_ipa.py` 转为方言严式 IPA，产出 `data/*_ipa/` 下的
+   `scp/text/vocab/ipa2tone`。
 
-```bash
-# 1) zhvoice 子集 -> 严式 IPA 文本 + scp + 词表
-#    --conv_js 指向转换器的 data/putonghua.js；--audio_root 为音频根目录
-python src/prepare_data.py build-zhvoice \
-    --metadata zhvoice/metadata.csv \
-    --audio_root zhvoice/wavs \
-    --conv_js path/to/putonghua-ipa-converter/data/putonghua.js \
-    --out data/zhvoice_ipa --train_n 8993 --val_n 918
-
-# 2) 将自有带调拼音文本转为 IPA（目录内需含 train/text、val/text）
-python src/prepare_data.py build-mandarin \
-    --text_dir data/mandarin_pinyin \
-    --conv_js path/to/putonghua-ipa-converter/data/putonghua.js \
-    --out data/zhvoice_ipa
-
-# 3) 合并多来源并扩充词表，输出 *_combined 文件
-python src/prepare_data.py combine \
-    --zhvoice_dir data/zhvoice_ipa --mandarin_ipa_dir data/zhvoice_ipa \
-    --out data/combined
-
-# 4) 按倍数扩充训练集（如 1.3×）：以普通话子集为基，混入 zhvoice 数据
-python src/prepare_data.py scale \
-    --mandarin_text data/combined/train_text --mandarin_scp data/combined/train_scp \
-    --zhvoice_text data/zhvoice_ipa/train_text --zhvoice_scp data/zhvoice_ipa/train_scp \
-    --factor 1.3 --out data/ipa130
-```
-
-生成的 `*.scp`（音频路径）与 `*.text`（IPA 标签）即可作为 `train.py` / `infer.py` 的输入。
 **请不要将原始音频或第三方文本随本仓库发布**，仅发布上述脚本与使用说明。
 
----
 
 ## 测试
 
-仓库含一个**不依赖模型权重 / 基础模型**的轻量冒烟测试，用于守护路径解析、词表加载与 CTC 解码等关键逻辑（即此前修复的若干 bug）：
+仓库含一个**不依赖模型权重 / 基础模型**的轻量冒烟测试，用于守护路径解析、词表加载与 CTC 解码等关键逻辑：
 
 ```bash
 python tests/smoke.py
 ```
 
-并通过 GitHub Actions 在每次 push / PR 到 `main` 时自动运行（见 `.github/workflows/ci.yml`）：安装最小依赖 → 编译检查全部源码 → 执行冒烟测试。
+并通过 GitHub Actions 在每次 push / PR 到 `main` 时自动运行（见 `.github/workflows/ci.yml`）。
 
----
 
 ## 许可证
 
@@ -350,22 +262,21 @@ python tests/smoke.py
 
 模型权重与训练数据按各自来源许可单独提供（ModelScope / 数据源仓库），不构成对本仓库许可证的覆盖。
 
----
 
 ## 引用与致谢
 
 - 基础模型：FunAudioLLM, *SenseVoice*.
-- 严式 IPA 转换：nk2028, *putonghua-ipa-converter*（CC0）.
-- 训练语料：fighting41love, *zhvoice*.
+- 普通话严式 IPA 转换：nk2028, *putonghua-ipa-converter*（CC0）.
+- 方言 IPA 转换：diamoe 方言 IPA 方案.
+- 训练语料：fighting41love, *zhvoice*；及粤语 / 四川话口语句库.
 
----
 
 <p align="center">
 <a href="README.md"><img alt="%E4%B8%AD%E6%96%87" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-brightgreen"></a>
 <a href="README_en.md"><img alt="English" src="https://img.shields.io/badge/English-blue"></a>
-<a href="README_ja.md"><img alt="%E6%97%A5%E6%9C%AC%E8%AA%9E" src="https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-blue"></a>
-<a href="README_ko.md"><img alt="%ED%95%9C%EA%B5%AD%EC%96%B4" src="https://img.shields.io/badge/%ED%95%9C%EA%B5%AD%EC%96%B4-blue"></a>
-<a href="README_vi.md"><img alt="Ti%E1%BA%BFng_Vi%E1%BB%87t" src="https://img.shields.io/badge/Ti%E1%BA%BFng_Vi%E1%BB%87t-blue"></a>
-<a href="README_fr.md"><img alt="Fran%C3%A7ais" src="https://img.shields.io/badge/Fran%C3%A7ais-blue"></a>
-<a href="README_ru.md"><img alt="%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-blue"></a>
+<a href="README_ja.md"><img alt="日本語" src="https://img.shields.io/badge/%E6%97%A5%E6%9C%AC%E8%AA%9E-blue"></a>
+<a href="README_ko.md"><img alt="한국어" src="https://img.shields.io/badge/%ED%95%9C%EA%B5%AD%EC%96%B4-blue"></a>
+<a href="README_vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/Ti%E1%BA%BFng_Vi%E1%BB%87t-blue"></a>
+<a href="README_fr.md"><img alt="Français" src="https://img.shields.io/badge/Fran%C3%A7ais-blue"></a>
+<a href="README_ru.md"><img alt="Русский" src="https://img.shields.io/badge/%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-blue"></a>
 </p>
