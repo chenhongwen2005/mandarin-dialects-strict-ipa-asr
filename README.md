@@ -1,7 +1,7 @@
 # 汉语普通话与方言严式IPA语音识别
 # Mandarin Chinese and dialects strict IPA speech recognition
 
-[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-brightgreen"></a>
@@ -20,7 +20,7 @@
 - **粤语 / 四川话**：在冻结的 SenseVoiceSmall 上叠加 **LoRA 适配器 + 方言 CTC 头**（仅训 LoRA 与方言头），
   权重分别 `out_canto/cantonese.pt`、`out_sichuan/sichuan.pt`。
 
-模型输出为空格分隔的严式 IPA 音节序列，每个音节自带调值符号（如 `ɡ̊wa̠n̚˥`、`x̞wa̠ɪ̯˧˥`），
+模型输出为空格分隔的严式 IPA 音节序列，每个音节自带调值符号（如 `ɡ̊wa̠n̚˥`、`x̞wa̠ɪ̯˧˥），
 即同时给出声母 / 韵母与声调，适合语音学分析、发音评测、声调教学等场景。
 
 > 许可证：**CC BY-NC-SA 4.0**（知识共享署名-非商业性使用-相同方式共享 4.0 国际）。
@@ -78,7 +78,7 @@ mandarin-ipa-asr/
 ├── data/
 │   ├── cantonese_ipa/          # 粤语 scp/text/vocab/ipa2tone
 │   └── sichuan_ipa/            # 四川话 scp/text/vocab/ipa2tone
-├── weights/base.pt             # 普通话微调权重（不入库，GitHub Releases 下载）
+├── weights/base.pt             # 普通话微调权重（不入库，魔搭(ModelScope) 下载）
 ├── out_canto/cantonese.pt       # 粤语 LoRA 权重
 ├── out_sichuan/sichuan.pt       # 四川话 LoRA 权重
 └── results/metrics.md          # 三语实测指标与训练曲线
@@ -102,7 +102,7 @@ mandarin-ipa-asr/
 ### 普通话：完整微调
 1. 加载预训练 SenseVoiceSmall 的 `WavFrontend` 与 `encoder`（原汉字 CTC 头丢弃），新建 IPA CTC 头。
 2. `WavFrontend` 始终冻结、`dither=0`；编码器与 IPA 头解冻并全量微调。
-3. `CTCLoss(blank=0)`；AdamW（`lr=1e-4`）；`CosineAnnealingLR`；梯度裁剪 1.0；bf16 混合精度。
+3. `CTCLoss(blank=0)`；AdamW（`lr=1e-4）；`CosineAnnealingLR`；梯度裁剪 1.0；bf16 混合精度。
 4. 保存 `base.pt`（TER 最低）、`base_tone.pt`（声调最高）。
 
 ### 粤语 / 四川话：LoRA 适配器
@@ -156,15 +156,12 @@ pip install -r requirements.txt
 
 ### 1. 获取模型权重
 
-模型权重**不放入本仓库**，请从 GitHub Releases（tag=`weights-v1`）下载（由作者单独发布）：
+模型权重**不放入本仓库**，请从 ModelScope（QiGuanFuChen/mandarin-ipa-asr）下载（由作者单独发布）：
 
 ```bash
-# 从 GitHub Releases (tag=weights-v1) 下载三个权重并放到对应目录：
-#   base.pt      -> weights/base.pt          （普通话完整微调）
-#   cantonese.pt -> out_canto/cantonese.pt   （粤语 LoRA）
-#   sichuan.pt   -> out_sichuan/sichuan.pt   （四川话 LoRA）
-# 也可直接运行 app.py，缺失权重时会自动从 Releases 下载。
-# 下载页：https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 ### 2. 单条音频推理
@@ -256,7 +253,7 @@ python src/train.py \
 python tests/smoke.py
 ```
 
-并通过 GitHub Actions 在每次 push / PR 到 `main` 时自动运行（见 `.github/workflows/ci.yml`）。
+并通过 GitHub Actions 在每次 push / PR 到 `main` 时自动运行（见 `.github/workflows/ci.yml）。
 
 
 ## 许可证

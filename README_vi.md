@@ -1,7 +1,7 @@
 # Nhận dạng giọng nói IPA nghiêm ngặt tiếng Trung (Phổ thông, Quảng Đông, Tứ Xuyên) / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -15,7 +15,7 @@
 
 Dựa trên bộ mã hóa [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice), gắn thêm một **đầu giải mã CTC IPA hẹp (narrow/phonetic)** ở trên, thông qua tinh chỉnh toàn bộ (full fine-tuning) đạt được phiên âm giọng nói tiếng Phổ Thông ở mức "âm tiết + thanh điệu".
 
-Mô hình xuất ra chuỗi âm tiết IPA hẹp phân cách bằng khoảng trắng, mỗi âm tiết mang ký hiệu giá trị thanh điệu riêng (ví dụ `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`) — tức đồng thời cho cả initial/final và thanh điệu, phù hợp cho phân tích ngữ âm, đánh giá phát âm tiếng Phổ Thông, dạy thanh điệu, v.v.
+Mô hình xuất ra chuỗi âm tiết IPA hẹp phân cách bằng khoảng trắng, mỗi âm tiết mang ký hiệu giá trị thanh điệu riêng (ví dụ `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥) — tức đồng thời cho cả initial/final và thanh điệu, phù hợp cho phân tích ngữ âm, đánh giá phát âm tiếng Phổ Thông, dạy thanh điệu, v.v.
 
 > Giấy phép: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Trọng số mô hình và dữ liệu huấn luyện không đi kèm kho mã nguồn; được lấy riêng qua ModelScope và quy trình xây dựng dữ liệu cục bộ. Xem chi tiết bên dưới.
@@ -83,7 +83,7 @@ mandarin-ipa-asr/
 
 1. **Khởi tạo**: tải `WavFrontend` và `encoder` của SenseVoiceSmall đã huấn luyện trước (bỏ đầu CTC chữ Hán gốc), sau đó tạo đầu CTC IPA mới `ctc_head = Linear(512,512) → ReLU → Dropout(0.1) → Linear(512, vocab)`.
 2. **Chiến lược đóng băng**: `WavFrontend` luôn bị đóng băng, `dither` cố định tại 0 (tắt tiêm nhiễu ngẫu nhiên, đảm bảo đặc trưng xác định); bộ mã hóa và đầu IPA **được giải đông và tinh chỉnh toàn bộ** (cũng hỗ trợ chỉ huấn luyện đầu).
-3. **Mất mát và tối ưu**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); cắt gradient 1.0.
+3. **Mất mát và tối ưu**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4); `CosineAnnealingLR` (`T_max = steps × epochs); cắt gradient 1.0.
 4. **Độ chính xác**: độ chính xác hỗn hợp bf16 (`autocast` chỉ áp dụng cho truyền xuôi bộ mã hóa; đặc trưng và mất mát giữ fp32).
 5. **Lưu trọng số**: `base.pt` (TER kiểm tra thấp nhất), `base_tone.pt` (độ chính xác thanh điệu cao nhất).
 6. **Tương thích trọng số cũ**: khi suy luận / huấn luyện tiếp, tự động ánh xạ lại tên đầu còn sót lại trong trọng số cũ thành `ctc_head.*` để tránh làm mất đầu một cách thầm lặng.
@@ -97,7 +97,7 @@ mandarin-ipa-asr/
 | Tập huấn luyện | **11,691** mẫu (đọc tiếng Phổ Thông; lấy từ tập con tiếng Phổ Thông của zhvoice ~8,993 mẫu, tái sử dụng/mở rộng 1.3×) |
 | Tập kiểm tra | **918** mẫu (đọc tiếng Phổ Thông, loại trừ với tập huấn luyện) |
 | Nhãn | Mỗi mẫu là chuỗi âm tiết IPA hẹp phân cách khoảng trắng (chuyển từ pinyin qua nk2028/putonghua-ipa-converter) |
-| Từ vựng IPA | 1,427 lớp (bao gồm `<blank>`/`<unk>`) |
+| Từ vựng IPA | 1,427 lớp (bao gồm `<blank>`/`<unk>) |
 
 > Bản gốc zhvoice khoảng **900 giờ, 3200+ người nói, ~1.129.800 mục văn bản**;
 > dự án chỉ dùng tập con tiếng Phổ Thông chất lượng đọc cao để xây dựng tập huấn luyện/kiểm tra, và chuyển sang IPA hẹp.
@@ -113,7 +113,7 @@ mandarin-ipa-asr/
 | Chỉ suy luận (đầu có thể huấn luyện, bộ mã hóa đóng băng) | 994,707 |
 | Chiều bộ mã hóa | 512 |
 | Từ vựng đầu ra IPA | 1,427 |
-| Số mục ánh xạ thanh điệu (ipa2tone) | 1,425 (trừ `<blank>`/`<unk>`) |
+| Số mục ánh xạ thanh điệu (ipa2tone) | 1,425 (trừ `<blank>`/`<unk>) |
 
 ---
 
@@ -123,7 +123,7 @@ mandarin-ipa-asr/
 | --- | --- | --- | --- |
 | **zhvoice** | Kho ngữ liệu huấn luyện (tập con đọc tiếng Phổ Thông) | Xem repo | https://github.com/fighting41love/zhvoice |
 | **putonghua-ipa-converter** | Chuyển pinyin → IPA hẹp (scheme 2, UntPhesoca) | CC0 | https://github.com/nk2028/putonghua-ipa-converter |
-| **SenseVoiceSmall** | Mô hình cơ sở huấn luyện trước | Xem repo | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall`) |
+| **SenseVoiceSmall** | Mô hình cơ sở huấn luyện trước | Xem repo | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall) |
 
 ---
 
@@ -205,16 +205,13 @@ pip install -r requirements.txt
 
 ### 1. Lấy trọng số mô hình
 
-Trọng số mô hình **không có trong repo này**; tải từ GitHub Releases (tag `weights-v1`, tác giả phát hành riêng), ví dụ:
+Trọng số mô hình **không có trong repo này**; tải từ ModelScope（QiGuanFuChen/mandarin-ipa-asr）, tác giả phát hành riêng), ví dụ:
 
 ```bash
 # Giả sử mô hình đã phát hành, dùng modelscope tải về cục bộ
-# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
-#   base.pt      -> weights/base.pt
-#   cantonese.pt -> out_canto/cantonese.pt
-#   sichuan.pt   -> out_sichuan/sichuan.pt
-# Or just run app.py: it auto-downloads missing weights from Releases.
-# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 Sau khi có `weights/base.pt`, chỉ định qua `--ckpt`. (Nếu tự huấn luyện, sẽ sinh thêm `checkpoints/base_tone.pt`; xem "Hướng dẫn huấn luyện" dưới)
@@ -257,7 +254,7 @@ python app.py --ckpt weights/base.pt --port 7860
 ## Hướng dẫn huấn luyện
 
 1. Chuẩn bị dữ liệu (xem "Ghi chú sử dụng dữ liệu" dưới) để có `train.scp` / `train.text` / `val.scp` / `val.text`
-   (định dạng: `uid đường_dẫn_âm_thanh` và `uid âm_tiết_IPA_cách_khoảng_trắng`).
+   (định dạng: `uid đường_dẫn_âm_thanh` và `uid âm_tiết_IPA_cách_khoảng_trắng).
 2. Chạy:
 
 ```bash

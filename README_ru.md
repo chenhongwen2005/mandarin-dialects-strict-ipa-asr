@@ -1,7 +1,7 @@
 # Строгий IPA-распознавание речи на китайском (путунхуа, кантонский, сычуаньский) / Mandarin Chinese and dialects strict IPA speech recognition
 > Этот проект теперь поддерживает три языка: путунхуа / кантонский / сычуаньский. Метрики по трём языкам — в [README.md](README.md) и [README_en.md](README_en.md).
 
-[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -15,7 +15,7 @@
 
 На базе кодировщика [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice), поверх которого установлена **голова декодирования CTC в узкой IPA**; с помощью полной тонкой настройки (full fine-tuning) выполняется транскрипция путунхуа на уровне «слог + тон».
 
-Модель выводит последовательность узких IPA-слогов, разделённых пробелами, каждый слог несёт собственный символ тонального значения (напр. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`) — то есть одновременно даёт инициаль/финаль и тон, что подходит для фонетического анализа, оценки произношения путунхуа, обучения тонам и т.п.
+Модель выводит последовательность узких IPA-слогов, разделённых пробелами, каждый слог несёт собственный символ тонального значения (напр. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥) — то есть одновременно даёт инициаль/финаль и тон, что подходит для фонетического анализа, оценки произношения путунхуа, обучения тонам и т.п.
 
 > Лицензия: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Веса модели и обучающие данные не поставляются вместе с репозиторием кода; они получаются отдельно через ModelScope и локальный конвейер подготовки данных. См. ниже.
@@ -83,7 +83,7 @@ mandarin-ipa-asr/
 
 1. **Инициализация**: загрузка предобученных `WavFrontend` и `encoder` из SenseVoiceSmall (исходная CTC-голова иероглифов отбрасывается), затем создание новой CTC-головы IPA `ctc_head = Linear(512,512) → ReLU → Dropout(0.1) → Linear(512, vocab)`.
 2. **Стратегия заморозки**: `WavFrontend` всегда заморожен, `dither` фиксирован на 0 (отключает случайный шум, гарантируя детерминированность признаков); кодировщик и IPA-голова **разморожены и полностью настраиваются** (поддерживается и обучение только головы).
-3. **Потери и оптимизация**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); обрезка градиента 1.0.
+3. **Потери и оптимизация**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4); `CosineAnnealingLR` (`T_max = steps × epochs); обрезка градиента 1.0.
 4. **Точность**: смешанная точность bf16 (`autocast` применяется только к прямому проходу кодировщика; признаки и потери остаются fp32).
 5. **Сохранение весов**: `base.pt` (минимальный TER валидации), `base_tone.pt` (максимальная точность тона).
 6. **Совместимость со старыми весами**: при выводе/возобновлении обучения остаточные имена головы из старых весов автоматически переотображаются в `ctc_head.*`, чтобы избежать тихой потери головы.
@@ -97,7 +97,7 @@ mandarin-ipa-asr/
 | Обучающая выборка | **11 691** пример (чтение путунхуа; получено из мандаринской подвыборки zhvoice ~8 993 примеров с переиспользованием/расширением 1,3×) |
 | Валидационная выборка | **918** примеров (чтение путунхуа, не пересекается с обучающей) |
 | Метки | Каждый пример — последовательность узких IPA-слогов через пробел (конвертация из pinyin через nk2028/putonghua-ipa-converter) |
-| IPA-словарь | 1 427 классов (вкл. `<blank>`/`<unk>`) |
+| IPA-словарь | 1 427 классов (вкл. `<blank>`/`<unk>) |
 
 > Исходный корпус zhvoice — около **900 часов, 3200+ дикторов, ~1 129 800 текстовых записей**;
 > проект использует только его подвыборку путунхуа высокого качества чтения для построения обучающей/валидационной выборок, конвертируя в узкую IPA.
@@ -113,7 +113,7 @@ mandarin-ipa-asr/
 | Только вывод (голова обучаема, кодировщик заморожен) | 994 707 |
 | Размерность кодировщика | 512 |
 | IPA-словарь на выходе | 1 427 |
-| Записей тонального сопоставления (ipa2tone) | 1 425 (кроме `<blank>`/`<unk>`) |
+| Записей тонального сопоставления (ipa2tone) | 1 425 (кроме `<blank>`/`<unk>) |
 
 ---
 
@@ -123,7 +123,7 @@ mandarin-ipa-asr/
 | --- | --- | --- | --- |
 | **zhvoice** | Обучающий корпус (подвыборка чтения путунхуа) | См. репозиторий | https://github.com/fighting41love/zhvoice |
 | **putonghua-ipa-converter** | Конвертация pinyin → узкая IPA (scheme 2, UntPhesoca) | CC0 | https://github.com/nk2028/putonghua-ipa-converter |
-| **SenseVoiceSmall** | Предобученная базовая модель | См. репозиторий | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall`) |
+| **SenseVoiceSmall** | Предобученная базовая модель | См. репозиторий | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall) |
 
 ---
 
@@ -205,16 +205,13 @@ pip install -r requirements.txt
 
 ### 1. Получение весов модели
 
-Веса модели **отсутствуют в этом репозитории**; загрузите их с GitHub Releases (тег `weights-v1`, опубликовано автором отдельно), напр.:
+Веса модели **отсутствуют в этом репозитории**; загрузите их с ModelScope（QiGuanFuChen/mandarin-ipa-asr）, опубликовано автором отдельно), напр.:
 
 ```bash
 # Предполагая, что модель опубликована, используйте modelscope для локальной загрузки
-# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
-#   base.pt      -> weights/base.pt
-#   cantonese.pt -> out_canto/cantonese.pt
-#   sichuan.pt   -> out_sichuan/sichuan.pt
-# Or just run app.py: it auto-downloads missing weights from Releases.
-# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 После получения `weights/base.pt` укажите его через `--ckpt`. (Если обучаете сами, дополнительно создастся `checkpoints/base_tone.pt`; см. «Руководство по обучению» ниже)
@@ -257,7 +254,7 @@ python app.py --ckpt weights/base.pt --port 7860
 ## Руководство по обучению
 
 1. Подготовьте данные (см. «Примечания к использованию данных» ниже), чтобы получить `train.scp` / `train.text` / `val.scp` / `val.text`
-   (формат: `uid путь_к_аудио` и `uid IPA_слоги_через_пробел`).
+   (формат: `uid путь_к_аудио` и `uid IPA_слоги_через_пробел).
 2. Запустите:
 
 ```bash

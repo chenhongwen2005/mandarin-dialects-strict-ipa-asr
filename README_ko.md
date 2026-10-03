@@ -1,7 +1,7 @@
 # 중국어(표준어·광둥어·쓰촨어) 엄격 IPA 음성 인식 / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -15,7 +15,7 @@
 
 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 인코더를 기반으로, 그 위에 **내로(정밀) 국제음성기호(IPA) CTC 디코딩 헤드**를 부착하고 전체 미세조정(full fine-tuning)을 통해 표준어의 “음절 + 성조” 수준 음성 전사를 수행합니다.
 
-모델은 공백으로 구분된 내로 IPA 음절 시퀀스를 출력하며, 각 음절에는 고유한 성조값 기호(예 `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`)가 붙습니다. 즉 초성/운모와 성조가 동시에 주어지므로 음성학 분석, 표준어 발음 평가, 성조 교육 등에 적합합니다.
+모델은 공백으로 구분된 내로 IPA 음절 시퀀스를 출력하며, 각 음절에는 고유한 성조값 기호(예 `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥)가 붙습니다. 즉 초성/운모와 성조가 동시에 주어지므로 음성학 분석, 표준어 발음 평가, 성조 교육 등에 적합합니다.
 
 > 라이선스: **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > 모델 가중치와 학습 데이터는 코드 저장소에 포함되지 않으며, 각각 ModelScope와 로컬 데이터 구축 절차를 통해 별도로 얻습니다. 자세한 내용은 아래를 참조하세요.
@@ -83,7 +83,7 @@ mandarin-ipa-asr/
 
 1. **초기화**: 사전학습된 SenseVoiceSmall의 `WavFrontend`와 `encoder`를 불러오고(원래 한자 CTC 헤드는 폐기), 새 IPA CTC 헤드 `ctc_head = Linear(512,512) → ReLU → Dropout(0.1) → Linear(512, vocab)`를 생성합니다.
 2. **동결 전략**: `WavFrontend`는 항상 동결, `dither`는 0으로 고정(무작위 노이즈 주입 비활성화로 특징의 결정성 보장); 인코더와 IPA 헤드는 **해제되어 전체 미세조정**(헤드만 학습하는 것도 지원).
-3. **손실과 최적화**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); 그래디언트 클리핑 1.0.
+3. **손실과 최적화**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4); `CosineAnnealingLR` (`T_max = steps × epochs); 그래디언트 클리핑 1.0.
 4. **정밀도**: bf16 혼합 정밀도(`autocast`는 인코더 순방향에만 적용, 특징과 손실은 fp32 유지).
 5. **가중치 저장**: `base.pt` (검증 TER 최저), `base_tone.pt` (성조 정확도 최고).
 6. **구버전 가중치 호환**: 추론/이어학습 시 구버전 가중치에 남은 헤드 명명을 자동으로 `ctc_head.*`로 재매핑하여 헤드가 조용히 누락되는 것을 방지.
@@ -123,7 +123,7 @@ mandarin-ipa-asr/
 | --- | --- | --- | --- |
 | **zhvoice** | 학습 코퍼스 (표준어 낭독 하위집합) | 저장소 참조 | https://github.com/fighting41love/zhvoice |
 | **putonghua-ipa-converter** | 병음 → 내로 IPA 변환 (scheme 2, UntPhesoca) | CC0 | https://github.com/nk2028/putonghua-ipa-converter |
-| **SenseVoiceSmall** | 사전학습 기본 모델 | 저장소 참조 | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall`) |
+| **SenseVoiceSmall** | 사전학습 기본 모델 | 저장소 참조 | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall) |
 
 ---
 
@@ -203,16 +203,13 @@ pip install -r requirements.txt
 
 ### 1. 모델 가중치 얻기
 
-모델 가중치는 **이 저장소에 없음**; GitHub Releases(tag=`weights-v1`)에서 다운로드 (저자가 별도 공개), 예:
+모델 가중치는 **이 저장소에 없음**; ModelScope（QiGuanFuChen/mandarin-ipa-asr）에서 다운로드 (저자가 별도 공개), 예:
 
 ```bash
 # 모델이 발행되었다고 가정, modelscope로 로컬 다운로드
-# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
-#   base.pt      -> weights/base.pt
-#   cantonese.pt -> out_canto/cantonese.pt
-#   sichuan.pt   -> out_sichuan/sichuan.pt
-# Or just run app.py: it auto-downloads missing weights from Releases.
-# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 `weights/base.pt` 확보 후 `--ckpt`로 지정. (직접 학습하면 추가로 `checkpoints/base_tone.pt`가 생성됨; 아래 “학습 가이드” 참조)
@@ -255,7 +252,7 @@ python app.py --ckpt weights/base.pt --port 7860
 ## 학습 가이드
 
 1. 데이터 준비 (아래 “데이터 사용 안내” 참조)하여 `train.scp` / `train.text` / `val.scp` / `val.text` 확보
-   (형식: `uid 오디오경로` 및 `uid 공백구분IPA음절`).
+   (형식: `uid 오디오경로` 및 `uid 공백구분IPA음절).
 2. 실행:
 
 ```bash

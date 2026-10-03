@@ -1,7 +1,7 @@
 # Reconnaissance vocale IPA stricte du chinois (mandarin, cantonais, sichuanais) / Mandarin Chinese and dialects strict IPA speech recognition
 > 本项目现已支持普通话 / 粤语 / 四川话三种语言；三语指标见 [README.md](README.md) 与 [README_en.md](README_en.md)。
 
-[![Weights](https://img.shields.io/badge/Weights-GitHub%20Releases-blue)](https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1)
+[![ModelScope](https://img.shields.io/badge/ModelScope-魔搭-blue)](https://www.modelscope.cn/models/QiGuanFuChen/mandarin-ipa-asr)
 
 <p align="center">
 <a href="README.md"><img alt="中文" src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-blue"></a>
@@ -15,7 +15,7 @@
 
 Basé sur l'encodeur [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice), au-dessus duquel est montée une **tête de décodage CTC IPA étroite (narrow/phonetic)** ; par un fine-tuning complet (full fine-tuning), il réalise la transcription vocale du mandarin au niveau « syllabe + ton ».
 
-Le modèle produit une séquence de syllabes IPA étroites séparées par des espaces, chaque syllabe portant son propre symbole de valeur tonale (ex. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`) — donnant à la fois l'initiale/finale et le ton, adapté à l'analyse phonétique, l'évaluation de la prononciation mandarine, l'enseignement des tons, etc.
+Le modèle produit une séquence de syllabes IPA étroites séparées par des espaces, chaque syllabe portant son propre symbole de valeur tonale (ex. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥) — donnant à la fois l'initiale/finale et le ton, adapté à l'analyse phonétique, l'évaluation de la prononciation mandarine, l'enseignement des tons, etc.
 
 > Licence : **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International).
 > Les poids du modèle et les données d'entraînement ne sont pas fournis avec le dépôt de code ; ils s'obtiennent séparément via ModelScope et un pipeline local de construction des données. Voir ci-dessous.
@@ -83,7 +83,7 @@ mandarin-ipa-asr/
 
 1. **Initialisation** : chargement du `WavFrontend` et de l'`encoder` pré-entraînés de SenseVoiceSmall (la tête CTC de caractères chinois d'origine est abandonnée), puis création d'une nouvelle tête CTC IPA `ctc_head = Linear(512,512) → ReLU → Dropout(0.1) → Linear(512, vocab)`.
 2. **Stratégie de gel** : `WavFrontend` toujours gelé, `dither` fixé à 0 (désactive l'injection de bruit aléatoire, garantit des caractéristiques déterministes) ; l'encodeur et la tête IPA sont **dégelés et fine-tunés complètement** (l'entraînement de la seule tête est aussi pris en charge).
-3. **Perte et optimisation** : `CTCLoss(blank=0)` ; AdamW (`lr=1e-4`, `weight_decay=1e-4`) ; `CosineAnnealingLR` (`T_max = steps × epochs`) ; écrêtement du gradient 1.0.
+3. **Perte et optimisation** : `CTCLoss(blank=0)` ; AdamW (`lr=1e-4`, `weight_decay=1e-4) ; `CosineAnnealingLR` (`T_max = steps × epochs) ; écrêtement du gradient 1.0.
 4. **Précision** : précision mixte bf16 (`autocast` appliqué uniquement à la passe avant de l'encodeur ; caractéristiques et perte restent en fp32).
 5. **Sauvegarde des poids** : `base.pt` (TER de validation le plus bas), `base_tone.pt` (précision tonale la plus élevée).
 6. **Compatibilité des anciens poids** : lors de l'inférence / reprise d'entraînement, le nom de tête résiduel des anciens poids est automatiquement remappé en `ctc_head.*` pour éviter une perte silencieuse de la tête.
@@ -97,7 +97,7 @@ mandarin-ipa-asr/
 | Ensemble d'entraînement | **11 691** échantillons (lecture mandarine ; dérivés du sous-ensemble mandarin de zhvoice ~8 993 échantillons réutilisés/étendus à 1,3×) |
 | Ensemble de validation | **918** échantillons (lecture mandarine, disjoint de l'ensemble d'entraînement) |
 | Étiquettes | Chaque échantillon est une séquence de syllabes IPA étroites séparées par des espaces (convertie du pinyin via nk2028/putonghua-ipa-converter) |
-| Vocabulaire IPA | 1 427 classes (incluant `<blank>`/`<unk>`) |
+| Vocabulaire IPA | 1 427 classes (incluant `<blank>`/`<unk>) |
 
 > Le corpus zhvoice brut représente environ **900 heures, 3 200+ locuteurs, ~1 129 800 entrées de texte** ;
 > ce projet n'utilise que son sous-ensemble mandarin de haute qualité de lecture pour construire les ensembles d'entraînement/validation, convertis en IPA étroite.
@@ -113,7 +113,7 @@ mandarin-ipa-asr/
 | Inférence seule (tête entraînable, encodeur gelé) | 994 707 |
 | Dimension de l'encodeur | 512 |
 | Vocabulaire de sortie IPA | 1 427 |
-| Entrées de correspondance tonale (ipa2tone) | 1 425 (hors `<blank>`/`<unk>`) |
+| Entrées de correspondance tonale (ipa2tone) | 1 425 (hors `<blank>`/`<unk>) |
 
 ---
 
@@ -123,7 +123,7 @@ mandarin-ipa-asr/
 | --- | --- | --- | --- |
 | **zhvoice** | Corpus d'entraînement (sous-ensemble lecture mandarine) | Voir dépôt | https://github.com/fighting41love/zhvoice |
 | **putonghua-ipa-converter** | Conversion pinyin → IPA étroite (scheme 2, UntPhesoca) | CC0 | https://github.com/nk2028/putonghua-ipa-converter |
-| **SenseVoiceSmall** | Modèle de base pré-entraîné | Voir dépôt | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall`) |
+| **SenseVoiceSmall** | Modèle de base pré-entraîné | Voir dépôt | https://github.com/FunAudioLLM/SenseVoice (ModelScope `iic/SenseVoiceSmall) |
 
 ---
 
@@ -205,16 +205,13 @@ pip install -r requirements.txt
 
 ### 1. Obtenir les poids du modèle
 
-Les poids du modèle **ne sont pas dans ce dépôt** ; téléchargez-les depuis GitHub Releases (tag `weights-v1`, publiés séparément par l'auteur), par ex. :
+Les poids du modèle **ne sont pas dans ce dépôt** ; téléchargez-les depuis ModelScope（QiGuanFuChen/mandarin-ipa-asr）, publiés séparément par l'auteur), par ex. :
 
 ```bash
 # En supposant que le modèle est publié, utilisez modelscope pour télécharger localement
-# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
-#   base.pt      -> weights/base.pt
-#   cantonese.pt -> out_canto/cantonese.pt
-#   sichuan.pt   -> out_sichuan/sichuan.pt
-# Or just run app.py: it auto-downloads missing weights from Releases.
-# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 Après avoir obtenu `weights/base.pt`, spécifiez-le via `--ckpt`. (Si vous entraînez le vôtre, un `checkpoints/base_tone.pt` supplémentaire sera produit ; voir « Guide d'entraînement » ci-dessous)
@@ -257,7 +254,7 @@ python app.py --ckpt weights/base.pt --port 7860
 ## Guide d'entraînement
 
 1. Préparez les données (voir « Notes d'utilisation des données » ci-dessous) pour obtenir `train.scp` / `train.text` / `val.scp` / `val.text`
-   (format : `uid chemin_audio` et `uid syllabes_IPA_séparées_par_espaces`).
+   (format : `uid chemin_audio` et `uid syllabes_IPA_séparées_par_espaces).
 2. Exécutez :
 
 ```bash

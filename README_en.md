@@ -22,7 +22,7 @@ supporting **Mandarin, Cantonese, and Sichuanese** at the "syllable + tone" leve
   trained), weights `out_canto/cantonese.pt` / `out_sichuan/sichuan.pt`.
 
 Output is a space-separated sequence of strict-IPA syllables, each carrying its own tone letters
-(e.g. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`), giving onset/nucleus and tone together — suited to phonetic analysis,
+(e.g. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥), giving onset/nucleus and tone together — suited to phonetic analysis,
 pronunciation assessment, and tone teaching.
 
 > License: **CC BY-NC-SA 4.0**. Model weights and training data are not shipped with the code repo; see below.
@@ -68,15 +68,12 @@ Switching unloads the previous model from GPU memory, loads the selected weights
 updates the comparison options (dialects hide the Chinese→IPA converter and only accept
 direct IPA input).
 
-Weights are not in the repo. Download all trained weights from GitHub Releases (tag=`weights-v1`):
+Weights are not in the repo. Download all trained weights from ModelScope（QiGuanFuChen/mandarin-ipa-asr）:
 
 ```bash
-# Download 3 weights from GitHub Releases (tag=weights-v1) and place them:
-#   base.pt      -> weights/base.pt
-#   cantonese.pt -> out_canto/cantonese.pt
-#   sichuan.pt   -> out_sichuan/sichuan.pt
-# Or just run app.py: it auto-downloads missing weights from Releases.
-# Releases: https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr/releases/tag/weights-v1
+# 从魔搭(ModelScope)下载权重仓库（含 base.pt / cantonese.pt / sichuan.pt）
+modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir .
+# 或直接运行 app.py：缺失权重时会自动从魔搭下载
 ```
 
 See [README.md](README.md) (Chinese) for the full guide: training methods, data preparation, environment,
