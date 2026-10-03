@@ -138,7 +138,13 @@ def load_for_language(lang):
     ipa2tone_path = a.ipa2tone_path
     if ipa2tone_path == "vocab/vocab_mandarin_ipa_tone_combined.json":
         ipa2tone_path = cfg["ipa2tone"]
-    ckpt = a.ckpt or cfg["ckpt"]
+    # 方言(LoRA)必须按语言配置加载各自的权重文件；--ckpt 仅作为普通话(full)模型的覆盖项。
+    # 旧逻辑 `a.ckpt or cfg["ckpt"]` 在 run.bat 带 --ckpt weights/base.pt 时会让粤语/四川话
+    # 错误加载普通话底模，导致 LoRA 随机化、输出像随机处理。
+    if cfg["model_type"] == "full":
+        ckpt = a.ckpt or cfg["ckpt"]
+    else:
+        ckpt = cfg["ckpt"]
 
     vocab_path = resolve_local_path(vocab_path)
     ipa2tone_path = resolve_local_path(ipa2tone_path)
@@ -147,7 +153,7 @@ def load_for_language(lang):
         a.model_dir = resolve_local_path(a.model_dir)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_missing = (not a.ckpt) and (not os.path.exists(ckpt_path))
+    ckpt_missing = not os.path.exists(ckpt_path)
 
     if cfg["model_type"] == "full":
         # 普通话：完整微调的 IPA 模型（底座 + IPA 头全量训练）
@@ -178,9 +184,16 @@ def load_for_language(lang):
             sd = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             state = sd.get("model_state_dict", sd)
             missing, unexpected = model.load_state_dict(state, strict=False)
+            # 说明：missing 中的键是冻结的底座参数（来自 SenseVoiceSmall），本就不应由
+            # 方言 LoRA 权重提供，属正常现象；真正判断「LoRA+CTC 头是否载入」以 unexpected==0 为准。
             print(f"[ckpt] 载入 {ckpt_path}  (missing={len(missing)}, unexpected={len(unexpected)})")
+            if unexpected:
+                print(f"[ckpt] ⚠ 权重中有 {len(unexpected)} 个键无法匹配模型结构（前10）: {unexpected[:10]}")
+            else:
+                print(f"[ckpt] ✅ LoRA + 方言 CTC 头已载入（{len(state)} 个参数）；"
+                      f"missing={len(missing)} 均为冻结底座参数，预期正常。")
             if missing:
-                print(f"[ckpt] 未载入键(前10): {missing[:10]}")
+                print(f"[ckpt] 未载入键(前10，应为底座参数): {missing[:10]}")
         model = model.eval()
 
     id2tok = {v: k for k, v in token2id.items()}

@@ -2,9 +2,9 @@
 color 0E
 
 echo ============================================================
-echo   Mandarin Narrow IPA Speech Recognition
+echo   Mandarin Chinese and Dialects Strict IPA Speech Recognition
 echo ============================================================
-echo   Project : https://github.com/chenhongwen2005/mandarin-ipa-asr
+echo   Project : https://github.com/chenhongwen2005/mandarin-dialects-strict-ipa-asr
 echo   Author  : Chen Hongwen
 echo   License : CC BY-NC-SA 4.0
 echo ------------------------------------------------------------
