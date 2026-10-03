@@ -9,8 +9,8 @@
                                  IPA 头维度不同则保持随机初始化）
 
 保存:
-  - best.pt      : 验证集 TER 最低的权重（转写错误率最优）
-  - best_tone.pt : 验证集声调准确率最高的权重（声调识别最优）
+  - base.pt      : 验证集 TER 最低的权重（转写错误率最优）
+  - base_tone.pt : 验证集声调准确率最高的权重（声调识别最优）
 
 用法:
   python train.py --train_scp train.scp --train_text train.text \
@@ -224,16 +224,16 @@ def main():
         if metrics["ter"] < best_ter:
             best_ter = metrics["ter"]
             torch.save(_ckpt(model, epoch, metrics, vocab_size, cfg),
-                       out_dir / "best.pt")
-            print(f"  -> best.pt 更新 (TER={best_ter:.4f})")
+                       out_dir / "base.pt")
+            print(f"  -> base.pt 更新 (TER={best_ter:.4f})")
         if metrics["tone_acc"] > best_tone:
             best_tone = metrics["tone_acc"]
             torch.save(_ckpt(model, epoch, metrics, vocab_size, cfg),
-                       out_dir / "best_tone.pt")
-            print(f"  -> best_tone.pt 更新 (声调={best_tone:.4f})")
+                       out_dir / "base_tone.pt")
+            print(f"  -> base_tone.pt 更新 (声调={best_tone:.4f})")
 
     print(f"\n微调完成, best TER = {best_ter:.4f}, best 声调 = {best_tone:.4f}")
-    print(f"推理: python infer.py --eval --ckpt {out_dir / 'best.pt'}")
+    print(f"推理: python infer.py --eval --ckpt {out_dir / 'base.pt'}")
     writer.close()
 
 

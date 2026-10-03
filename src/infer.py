@@ -3,13 +3,13 @@
 
 用法:
   # 单条音频 -> 打印 IPA 转写
-  python infer.py --wav audio.wav --ckpt checkpoints/best.pt
+  python infer.py --wav audio.wav --ckpt checkpoints/base.pt
 
   # 批量评测（默认读 val_scp / val_text）-> TER / ACC / TACC / 声调准确率
-  python infer.py --eval --ckpt checkpoints/best.pt --limit 0
+  python infer.py --eval --ckpt checkpoints/base.pt --limit 0
 
   # 单条 + 提供参考文本 -> 逐音节声调对齐
-  python infer.py --wav audio.wav --ckpt checkpoints/best.pt --ref "ipa syllables space separated"
+  python infer.py --wav audio.wav --ckpt checkpoints/base.pt --ref "ipa syllables space separated"
 """
 
 import argparse

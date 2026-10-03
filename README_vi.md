@@ -85,7 +85,7 @@ mandarin-ipa-asr/
 2. **Chiến lược đóng băng**: `WavFrontend` luôn bị đóng băng, `dither` cố định tại 0 (tắt tiêm nhiễu ngẫu nhiên, đảm bảo đặc trưng xác định); bộ mã hóa và đầu IPA **được giải đông và tinh chỉnh toàn bộ** (cũng hỗ trợ chỉ huấn luyện đầu).
 3. **Mất mát và tối ưu**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); cắt gradient 1.0.
 4. **Độ chính xác**: độ chính xác hỗn hợp bf16 (`autocast` chỉ áp dụng cho truyền xuôi bộ mã hóa; đặc trưng và mất mát giữ fp32).
-5. **Lưu trọng số**: `best.pt` (TER kiểm tra thấp nhất), `best_tone.pt` (độ chính xác thanh điệu cao nhất).
+5. **Lưu trọng số**: `base.pt` (TER kiểm tra thấp nhất), `base_tone.pt` (độ chính xác thanh điệu cao nhất).
 6. **Tương thích trọng số cũ**: khi suy luận / huấn luyện tiếp, tự động ánh xạ lại tên đầu còn sót lại trong trọng số cũ thành `ctc_head.*` để tránh làm mất đầu một cách thầm lặng.
 
 ---
@@ -197,11 +197,11 @@ pip install -r requirements.txt
 > trông như "nhận dạng ra rất nhiều", nhưng hoàn toàn không phải phát âm thật.
 > Ví dụ: nửa đầu 《Tĩnh dạ tứ》(静夜思) chỉ có khoảng 10 âm tiết, nhưng không có trọng số có thể xuất ra 30+ âm tiết rác lặp lại.
 >
-> Cách dùng đúng (trọng số phải tải về `weights/best.pt` trước, xem mục sau):
+> Cách dùng đúng (trọng số phải tải về `weights/base.pt` trước, xem mục sau):
 > ```bash
-> python app.py --ckpt weights/best.pt
+> python app.py --ckpt weights/base.pt
 > ```
-> Nếu không chỉ định `--ckpt`, `app.py` sẽ tự động thử định vị `weights/best.pt`; nếu cả hai đều không có, khi khởi động sẽ in 【cảnh báo】 nổi bật.
+> Nếu không chỉ định `--ckpt`, `app.py` sẽ tự động thử định vị `weights/base.pt`; nếu cả hai đều không có, khi khởi động sẽ in 【cảnh báo】 nổi bật.
 
 ### 1. Lấy trọng số mô hình
 
@@ -212,20 +212,20 @@ Trọng số mô hình **không có trong repo này**; tải từ ModelScope (t�
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-Sau khi có `weights/best.pt`, chỉ định qua `--ckpt`. (Nếu tự huấn luyện, sẽ sinh thêm `checkpoints/best_tone.pt`; xem "Hướng dẫn huấn luyện" dưới)
+Sau khi có `weights/base.pt`, chỉ định qua `--ckpt`. (Nếu tự huấn luyện, sẽ sinh thêm `checkpoints/base_tone.pt`; xem "Hướng dẫn huấn luyện" dưới)
 
 ### 2. Suy luận một đoạn âm thanh
 
 ```bash
 # Không cần cd vào thư mục gốc: script phân giải vocab/data tương đối theo vị trí của nó; chạy từ bất kỳ thư mục nào
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 # Đầu ra: chuỗi âm tiết IPA hẹp phân cách khoảng trắng
 ```
 
 ### 3. Đánh giá hàng loạt (chỉ số kiểm tra)
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text --limit 0
 # Xuất TER / ACC / TACC / độ chính xác thanh điệu
 ```
@@ -237,8 +237,8 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ```bash
 # Chạy từ bất kỳ thư mục nào (đường dẫn tương đối phân giải theo gốc dự án); --ckpt nhận đường dẫn tương đối hoặc tuyệt đối
-# Nếu bỏ --ckpt, sẽ tự thử weights/best.pt
-python app.py --ckpt weights/best.pt --port 7860
+# Nếu bỏ --ckpt, sẽ tự thử weights/base.pt
+python app.py --ckpt weights/base.pt --port 7860
 # Mở http://127.0.0.1:7860 trên trình duyệt
 ```
 
@@ -271,7 +271,7 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 ```
 
 - Để warm-start từ trọng số tinh chỉnh toàn bộ pinyin: `--warm_start weights/pinyin_ft.pt` (kích thước đầu khác sẽ tự bỏ qua và khởi tạo ngẫu nhiên).
-- Xuất `checkpoints/best.pt` (TER thấp nhất) và `checkpoints/best_tone.pt` (thanh điệu cao nhất).
+- Xuất `checkpoints/base.pt` (TER thấp nhất) và `checkpoints/base_tone.pt` (thanh điệu cao nhất).
 
 ---
 

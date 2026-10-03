@@ -9,12 +9,12 @@
 #  复用通用 LoRA 训练脚本 train_cantonese_lora.py (方言无关)
 #
 #  用法(在 D:/mandarin-ipa-asr-cu128 目录下, Git Bash):
-#    ./train_sichuan_lora.sh            # 训练(若 last.pt 存在则自动续训)
+#    ./train_sichuan_lora.sh            # 训练(若 sichuan_last.pt 存在则自动续训)
 #    ./train_sichuan_lora.sh fresh      # 清空旧权重, 从头训练
-#    ./train_sichuan_lora.sh eval       # 只评测(加载已训 best.pt)
+#    ./train_sichuan_lora.sh eval       # 只评测(加载已训 sichuan.pt)
 #
 #  依赖环境: D:/mandarin-ipa-asr-cu128/runtime/python.exe
-#  输出:     out_sichuan/{best.pt,best_tone.pt,last.pt,metrics.csv,preds_val.txt}
+#  输出:     out_sichuan/{sichuan.pt,sichuan_tone.pt,sichuan_last.pt,metrics.csv,preds_val.txt}
 # ================================================================
 set -e
 
@@ -42,9 +42,10 @@ MIN_EPOCHS=10         # 早停最少训练轮数
 
 case "$1" in
   eval)
-    echo ">>> 评测模式：加载 $OUT/best.pt"
+    echo ">>> 评测模式：加载 $OUT/sichuan.pt"
     "$PY" "$SRC/train_cantonese_lora.py" --eval \
-      --resume     "$OUT/best.pt" \
+      --resume     "$OUT/sichuan.pt" \
+      --best_name  sichuan \
       --vocab      "$DATA/vocab_sichuan_ipa_combined.json" \
       --ipa2tone   "$DATA/ipa2tone_sichuan.json" \
       --val_scp    "$DATA/val_scp" \
@@ -54,13 +55,13 @@ case "$1" in
     ;;
   fresh)
     echo ">>> 全新训练: 清空旧权重"
-    rm -f "$OUT"/last.pt "$OUT"/best.pt "$OUT"/best_tone.pt "$OUT"/metrics.csv "$OUT"/preds_val.txt
+    rm -f "$OUT"/sichuan_last.pt "$OUT"/sichuan.pt "$OUT"/sichuan_tone.pt "$OUT"/metrics.csv "$OUT"/preds_val.txt
     TRAIN_RESUME=""
     ;;
   *)
-    if [ -f "$OUT/last.pt" ]; then
-      echo ">>> 检测到 last.pt, 自动续训(崩溃/被杀后重跑可继续, 不丢进度)"
-      TRAIN_RESUME="--resume $OUT/last.pt"
+    if [ -f "$OUT/sichuan_last.pt" ]; then
+      echo ">>> 检测到 sichuan_last.pt, 自动续训(崩溃/被杀后重跑可继续, 不丢进度)"
+      TRAIN_RESUME="--resume $OUT/sichuan_last.pt"
     else
       echo ">>> 全新训练"
       TRAIN_RESUME=""
@@ -77,6 +78,7 @@ echo ">>> 训练模式：输出到 $OUT"
   --val_scp     "$DATA/val_scp" \
   --val_text    "$DATA/val_text" \
   --output_dir  "$OUT" \
+  --best_name   sichuan \
   --epochs      $EPOCHS \
   --batch_size  $BATCH \
   --grad_accum  $GRAD_ACCUM \

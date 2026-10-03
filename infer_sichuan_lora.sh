@@ -11,7 +11,7 @@
 #    # 评测(TER / token_acc / tone_acc / exact, 写出 preds_val.txt)
 #    ./infer_sichuan_lora.sh eval
 #
-#  权重: out_sichuan/best.pt (由 train_sichuan_lora.sh 训练得到)
+#  权重: out_sichuan/sichuan.pt (由 train_sichuan_lora.sh 训练得到)
 # ================================================================
 set -e
 
@@ -22,7 +22,7 @@ PY="$ROOT/runtime/python.exe"
 SRC="$ROOT/src"
 DATA="$ROOT/data/sichuan_ipa"
 OUT="$ROOT/out_sichuan"
-CKPT="$OUT/best.pt"
+CKPT="$OUT/sichuan.pt"
 
 if [ "$1" = "eval" ]; then
   "$PY" "$SRC/infer_cantonese_lora.py" --eval \

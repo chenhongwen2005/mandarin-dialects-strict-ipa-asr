@@ -5,7 +5,7 @@
 #    单条 : bash infer_cantonese_lora.sh <wav绝对路径>
 #    批量 : bash infer_cantonese_lora.sh list <列表txt(每行一wav)> [输出txt]
 #    评测 : bash infer_cantonese_lora.sh eval
-#  权重默认取 out_canto/best.pt（需先训练）。
+#  权重默认取 out_canto/cantonese.pt（需先训练）。
 # ================================================================
 set -e
 
@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd -W)"
 cd "$ROOT"
 PY="$ROOT/runtime/python.exe"
 SRC="$ROOT/src"
-CKPT="$ROOT/out_canto/best.pt"
+CKPT="$ROOT/out_canto/cantonese.pt"
 
 case "$1" in
   eval)

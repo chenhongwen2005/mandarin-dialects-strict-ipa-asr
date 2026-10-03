@@ -17,9 +17,9 @@ A strict-IPA (International Phonetic Alphabet) speech recognition project built 
 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) encoder with a **strict-IPA CTC head**,
 supporting **Mandarin, Cantonese, and Sichuanese** at the "syllable + tone" level.
 
-- **Mandarin**: full fine-tuning (frozen frontend, full encoder + IPA-head fine-tuning), weights `weights/best.pt`.
+- **Mandarin**: full fine-tuning (frozen frontend, full encoder + IPA-head fine-tuning), weights `weights/base.pt`.
 - **Cantonese / Sichuanese**: **LoRA adapters** on top of the frozen SenseVoiceSmall (only LoRA + dialect CTC head
-  trained), weights `out_canto/best.pt` / `out_sichuan/best.pt`.
+  trained), weights `out_canto/cantonese.pt` / `out_sichuan/sichuan.pt`.
 
 Output is a space-separated sequence of strict-IPA syllables, each carrying its own tone letters
 (e.g. `ɡ̊wa̠n̚˥`, `x̞wa̠ɪ̯˧˥`), giving onset/nucleus and tone together — suited to phonetic analysis,
@@ -48,12 +48,12 @@ bf16 encoder). Full definitions and reproduction commands: [results/metrics.md](
 
 ```bash
 # Gradio demo — initial language at launch (also switchable live in the UI)
-python app.py --ckpt weights/best.pt --port 7860            # Mandarin (default)
+python app.py --ckpt weights/base.pt --port 7860            # Mandarin (default)
 python app.py --language cantonese --port 7860              # Cantonese (LoRA)
 python app.py --language sichuan  --port 7860               # Sichuanese (LoRA)
 
 # Single-file inference
-python src/infer.py --wav audio.wav --ckpt weights/best.pt   # Mandarin
+python src/infer.py --wav audio.wav --ckpt weights/base.pt   # Mandarin
 bash infer_cantonese_lora.sh "audio.wav"                    # Cantonese
 bash infer_sichuan_lora.sh  "audio.wav"                     # Sichuanese
 

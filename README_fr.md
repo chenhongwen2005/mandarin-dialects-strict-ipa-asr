@@ -85,7 +85,7 @@ mandarin-ipa-asr/
 2. **Stratégie de gel** : `WavFrontend` toujours gelé, `dither` fixé à 0 (désactive l'injection de bruit aléatoire, garantit des caractéristiques déterministes) ; l'encodeur et la tête IPA sont **dégelés et fine-tunés complètement** (l'entraînement de la seule tête est aussi pris en charge).
 3. **Perte et optimisation** : `CTCLoss(blank=0)` ; AdamW (`lr=1e-4`, `weight_decay=1e-4`) ; `CosineAnnealingLR` (`T_max = steps × epochs`) ; écrêtement du gradient 1.0.
 4. **Précision** : précision mixte bf16 (`autocast` appliqué uniquement à la passe avant de l'encodeur ; caractéristiques et perte restent en fp32).
-5. **Sauvegarde des poids** : `best.pt` (TER de validation le plus bas), `best_tone.pt` (précision tonale la plus élevée).
+5. **Sauvegarde des poids** : `base.pt` (TER de validation le plus bas), `base_tone.pt` (précision tonale la plus élevée).
 6. **Compatibilité des anciens poids** : lors de l'inférence / reprise d'entraînement, le nom de tête résiduel des anciens poids est automatiquement remappé en `ctc_head.*` pour éviter une perte silencieuse de la tête.
 
 ---
@@ -197,11 +197,11 @@ pip install -r requirements.txt
 > ressemblant à « beaucoup a été reconnu », mais ce n'est pas du tout la prononciation réelle.
 > Par exemple, la première moitié de *Jingyesi* (静夜思) n'a que ~10 syllabes, mais sans poids elle peut produire 30+ syllabes répétées absurdes.
 >
-> Usage correct (les poids doivent d'abord être téléchargés vers `weights/best.pt`, voir section suivante) :
+> Usage correct (les poids doivent d'abord être téléchargés vers `weights/base.pt`, voir section suivante) :
 > ```bash
-> python app.py --ckpt weights/best.pt
+> python app.py --ckpt weights/base.pt
 > ```
-> Si `--ckpt` n'est pas donné, `app.py` tentera automatiquement de localiser `weights/best.pt` ; si les deux sont absents, un 【avertissement】proéminent est affiché au démarrage.
+> Si `--ckpt` n'est pas donné, `app.py` tentera automatiquement de localiser `weights/base.pt` ; si les deux sont absents, un 【avertissement】proéminent est affiché au démarrage.
 
 ### 1. Obtenir les poids du modèle
 
@@ -212,20 +212,20 @@ Les poids du modèle **ne sont pas dans ce dépôt** ; téléchargez-les depuis 
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-Après avoir obtenu `weights/best.pt`, spécifiez-le via `--ckpt`. (Si vous entraînez le vôtre, un `checkpoints/best_tone.pt` supplémentaire sera produit ; voir « Guide d'entraînement » ci-dessous)
+Après avoir obtenu `weights/base.pt`, spécifiez-le via `--ckpt`. (Si vous entraînez le vôtre, un `checkpoints/base_tone.pt` supplémentaire sera produit ; voir « Guide d'entraînement » ci-dessous)
 
 ### 2. Inférence sur un audio
 
 ```bash
 # Pas besoin de cd dans la racine du projet : le script résout vocab/data relativement à sa propre position ; lançable depuis n'importe quel répertoire
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 # Sortie : séquence de syllabes IPA étroites séparées par des espaces
 ```
 
 ### 3. Évaluation par lots (métriques de validation)
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text --limit 0
 # Sortie TER / ACC / TACC / précision tonale
 ```
@@ -237,8 +237,8 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ```bash
 # Lançable depuis n'importe quel répertoire (chemins relatifs résolus par rapport à la racine du projet) ; --ckpt accepte un chemin relatif ou absolu
-# Si --ckpt est omis, weights/best.pt est tenté automatiquement
-python app.py --ckpt weights/best.pt --port 7860
+# Si --ckpt est omis, weights/base.pt est tenté automatiquement
+python app.py --ckpt weights/base.pt --port 7860
 # Ouvrez http://127.0.0.1:7860 dans un navigateur
 ```
 
@@ -271,7 +271,7 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 ```
 
 - Pour un warm-start à partir de poids fine-tunés pinyin : `--warm_start weights/pinyin_ft.pt` (dimension de tête différente est automatiquement ignorée et initialisée aléatoirement).
-- Produit `checkpoints/best.pt` (TER le plus bas) et `checkpoints/best_tone.pt` (ton le plus élevé).
+- Produit `checkpoints/base.pt` (TER le plus bas) et `checkpoints/base_tone.pt` (ton le plus élevé).
 
 ---
 

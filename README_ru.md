@@ -85,7 +85,7 @@ mandarin-ipa-asr/
 2. **Стратегия заморозки**: `WavFrontend` всегда заморожен, `dither` фиксирован на 0 (отключает случайный шум, гарантируя детерминированность признаков); кодировщик и IPA-голова **разморожены и полностью настраиваются** (поддерживается и обучение только головы).
 3. **Потери и оптимизация**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); обрезка градиента 1.0.
 4. **Точность**: смешанная точность bf16 (`autocast` применяется только к прямому проходу кодировщика; признаки и потери остаются fp32).
-5. **Сохранение весов**: `best.pt` (минимальный TER валидации), `best_tone.pt` (максимальная точность тона).
+5. **Сохранение весов**: `base.pt` (минимальный TER валидации), `base_tone.pt` (максимальная точность тона).
 6. **Совместимость со старыми весами**: при выводе/возобновлении обучения остаточные имена головы из старых весов автоматически переотображаются в `ctc_head.*`, чтобы избежать тихой потери головы.
 
 ---
@@ -197,11 +197,11 @@ pip install -r requirements.txt
 > выглядит как «распозналось много», но это не настоящее произношение.
 > Например, в первой половине *Цзинесы* (静夜思) всего ~10 слогов, но без весов может вывести 30+ повторяющихся мусорных слогов.
 >
-> Правильное использование (веса сначала нужно скачать в `weights/best.pt`, см. след. раздел):
+> Правильное использование (веса сначала нужно скачать в `weights/base.pt`, см. след. раздел):
 > ```bash
-> python app.py --ckpt weights/best.pt
+> python app.py --ckpt weights/base.pt
 > ```
-> Если `--ckpt` не задан, `app.py` автоматически попытается найти `weights/best.pt`; если обоих нет, при запуске выводится заметное 【предупреждение】.
+> Если `--ckpt` не задан, `app.py` автоматически попытается найти `weights/base.pt`; если обоих нет, при запуске выводится заметное 【предупреждение】.
 
 ### 1. Получение весов модели
 
@@ -212,20 +212,20 @@ pip install -r requirements.txt
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-После получения `weights/best.pt` укажите его через `--ckpt`. (Если обучаете сами, дополнительно создастся `checkpoints/best_tone.pt`; см. «Руководство по обучению» ниже)
+После получения `weights/base.pt` укажите его через `--ckpt`. (Если обучаете сами, дополнительно создастся `checkpoints/base_tone.pt`; см. «Руководство по обучению» ниже)
 
 ### 2. Вывод для одного аудио
 
 ```bash
 # Не нужно cd в корень проекта: скрипт разрешает vocab/data относительно своей позиции; запускается из любого каталога
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 # Вывод: последовательность узких IPA-слогов через пробел
 ```
 
 ### 3. Пакетная оценка (метрики валидации)
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text --limit 0
 # Вывод TER / ACC / TACC / точность тона
 ```
@@ -237,8 +237,8 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ```bash
 # Запускается из любого каталога (относительные пути разрешаются относительно корня проекта); --ckpt принимает относительный или абсолютный путь
-# Если --ckpt опущен, автоматически пробуется weights/best.pt
-python app.py --ckpt weights/best.pt --port 7860
+# Если --ckpt опущен, автоматически пробуется weights/base.pt
+python app.py --ckpt weights/base.pt --port 7860
 # Откройте http://127.0.0.1:7860 в браузере
 ```
 
@@ -271,7 +271,7 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 ```
 
 - Для warm-start из pinyin-весов полной настройки: `--warm_start weights/pinyin_ft.pt` (другая размерность головы автоматически пропускается и инициализируется случайно).
-- Выводит `checkpoints/best.pt` (минимальный TER) и `checkpoints/best_tone.pt` (максимальный тон).
+- Выводит `checkpoints/base.pt` (минимальный TER) и `checkpoints/base_tone.pt` (максимальный тон).
 
 ---
 

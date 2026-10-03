@@ -5,13 +5,13 @@
 
 用法（在 D:/mandarin-ipa-asr-cu128 下用 Git Bash）:
     # 单条 wav
-    runtime/python.exe src/infer_cantonese_lora.py --wav path.wav --ckpt out_canto/best.pt
+    runtime/python.exe src/infer_cantonese_lora.py --wav path.wav --ckpt out_canto/cantonese.pt
 
     # 批量（每行一个 wav 绝对路径）
-    runtime/python.exe src/infer_cantonese_lora.py --list wavs.txt --out preds.txt --ckpt out_canto/best.pt
+    runtime/python.exe src/infer_cantonese_lora.py --list wavs.txt --out preds.txt --ckpt out_canto/cantonese.pt
 
     # 评测（与训练一致口径：TER / token_acc / tone_acc / exact）
-    runtime/python.exe src/infer_cantonese_lora.py --eval --ckpt out_canto/best.pt
+    runtime/python.exe src/infer_cantonese_lora.py --eval --ckpt out_canto/cantonese.pt
 
 未传 --ckpt（或文件不存在）时退化为随机初始化权重，仅用于验证链路。
 """

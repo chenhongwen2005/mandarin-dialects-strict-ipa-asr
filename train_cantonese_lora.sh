@@ -5,14 +5,14 @@
 #
 #  用法（在 D:/mandarin-ipa-asr-cu128 目录下，用 Git Bash 运行）:
 #    ./train_cantonese_lora.sh          # 训练
-#    ./train_cantonese_lora.sh eval     # 只评测（加载已训 best.pt）
+#    ./train_cantonese_lora.sh eval     # 只评测（加载已训 cantonese.pt）
 #
 #  依赖环境: D:/mandarin-ipa-asr-cu128/runtime/python.exe
 #            （已含 torch2.7+cu128 / funasr1.4 / ToJyutping / pyjyutping）
 #  数据:     data/cantonese_ipa/{train_scp,train_text,val_scp,val_text,
 #                               vocab_cantonese_ipa_combined.json,
 #                               ipa2tone_cantonese.json}   （已生成）
-#  输出:     out_canto/{best.pt,best_tone.pt,last.pt,metrics.csv,preds_val.txt}
+#  输出:     out_canto/{cantonese.pt,cantonese_tone.pt,cantonese_last.pt,metrics.csv,preds_val.txt}
 # ================================================================
 set -e
 
@@ -33,9 +33,10 @@ NUM_WORKERS=2
 MAX_SECONDS=20   # 单条音频最长秒数，超长裁剪；粤语样本多为短句，20s 足够
 
 if [ "$1" = "eval" ]; then
-  echo ">>> 评测模式：加载 $OUT/best.pt"
+  echo ">>> 评测模式：加载 $OUT/cantonese.pt"
   "$PY" "$SRC/train_cantonese_lora.py" --eval \
-    --resume     "$OUT/best.pt" \
+    --resume     "$OUT/cantonese.pt" \
+    --best_name  cantonese \
     --val_scp    "$DATA/val_scp" \
     --val_text   "$DATA/val_text" \
     --output_dir "$OUT"
@@ -47,6 +48,7 @@ else
     --val_scp     "$DATA/val_scp" \
     --val_text    "$DATA/val_text" \
     --output_dir  "$OUT" \
+    --best_name   cantonese \
     --epochs      $EPOCHS \
     --batch_size  $BATCH \
     --grad_accum  $GRAD_ACCUM \

@@ -33,6 +33,6 @@ echo   https://creativecommons.org/licenses/by-nc-sa/4.0/
 echo ============================================================
 echo.
 
-runtime\python.exe app.py --ckpt weights\best.pt
+runtime\python.exe app.py --ckpt weights\base.pt
 
 pause

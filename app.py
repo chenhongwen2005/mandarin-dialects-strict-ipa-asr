@@ -55,7 +55,7 @@ LANG_CONFIG = {
         "model_type": "full",
         "vocab": "vocab/vocab_mandarin_ipa_combined.json",
         "ipa2tone": "vocab/vocab_mandarin_ipa_tone_combined.json",
-        "ckpt": "weights/best.pt",
+        "ckpt": "weights/base.pt",
         "use_converter": True,
     },
     "cantonese": {
@@ -63,7 +63,7 @@ LANG_CONFIG = {
         "model_type": "lora",
         "vocab": "data/cantonese_ipa/vocab_cantonese_ipa_combined.json",
         "ipa2tone": "data/cantonese_ipa/ipa2tone_cantonese.json",
-        "ckpt": "out_canto/best.pt",
+        "ckpt": "out_canto/cantonese.pt",
         "vocab_size": 1580,
         "use_converter": False,
     },
@@ -72,7 +72,7 @@ LANG_CONFIG = {
         "model_type": "lora",
         "vocab": "data/sichuan_ipa/vocab_sichuan_ipa_combined.json",
         "ipa2tone": "data/sichuan_ipa/ipa2tone_sichuan.json",
-        "ckpt": "out_sichuan/best.pt",
+        "ckpt": "out_sichuan/sichuan.pt",
         "vocab_size": 912,
         "use_converter": False,
     },
@@ -153,12 +153,12 @@ def load_for_language(lang):
         # 普通话：完整微调的 IPA 模型（底座 + IPA 头全量训练）
         if ckpt_missing:
             print("=" * 64)
-            print("【警告】未加载任何微调权重：--ckpt 为空且 weights/best.pt 不存在")
+            print("【警告】未加载任何微调权重：--ckpt 为空且 weights/base.pt 不存在")
             print("    当前运行的是【随机初始化】模型，识别结果将是无意义的乱码。")
             print("    请先下载权重：")
             print("      modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/")
             print("    再以权重启动：")
-            print("      python app.py --language mandarin --ckpt weights/best.pt")
+            print("      python app.py --language mandarin --ckpt weights/base.pt")
             print("=" * 64)
         model, token2id, dev = build_model(vocab_path, ckpt_path, a.model_dir, freeze_encoder=True)
     else:

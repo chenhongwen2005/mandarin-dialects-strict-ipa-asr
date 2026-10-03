@@ -85,7 +85,7 @@ mandarin-ipa-asr/
 2. **동결 전략**: `WavFrontend`는 항상 동결, `dither`는 0으로 고정(무작위 노이즈 주입 비활성화로 특징의 결정성 보장); 인코더와 IPA 헤드는 **해제되어 전체 미세조정**(헤드만 학습하는 것도 지원).
 3. **손실과 최적화**: `CTCLoss(blank=0)`; AdamW (`lr=1e-4`, `weight_decay=1e-4`); `CosineAnnealingLR` (`T_max = steps × epochs`); 그래디언트 클리핑 1.0.
 4. **정밀도**: bf16 혼합 정밀도(`autocast`는 인코더 순방향에만 적용, 특징과 손실은 fp32 유지).
-5. **가중치 저장**: `best.pt` (검증 TER 최저), `best_tone.pt` (성조 정확도 최고).
+5. **가중치 저장**: `base.pt` (검증 TER 최저), `base_tone.pt` (성조 정확도 최고).
 6. **구버전 가중치 호환**: 추론/이어학습 시 구버전 가중치에 남은 헤드 명명을 자동으로 `ctc_head.*`로 재매핑하여 헤드가 조용히 누락되는 것을 방지.
 
 ---
@@ -195,11 +195,11 @@ pip install -r requirements.txt
 > 프로그램이 **무작위 초기화**된 모델을 조용히 사용함 — 오디오에 대해 출력되는 IPA는 무의미하며 종종 음절이 반복됨.
 > “많이 인식된” 것처럼 보이지만 실제 발음이 아님. 예: 《정야사(静夜思)》 전반은 약 10음절이지만 가중치 없으면 30개 이상의 반복된 난잡 음절을 출력할 수 있음.
 >
-> 올바른 사용법 (가중치를 먼저 `weights/best.pt`로 다운로드, 다음 절 참조):
+> 올바른 사용법 (가중치를 먼저 `weights/base.pt`로 다운로드, 다음 절 참조):
 > ```bash
-> python app.py --ckpt weights/best.pt
+> python app.py --ckpt weights/base.pt
 > ```
-> `--ckpt`를 지정하지 않으면 `app.py`가 `weights/best.pt` 자동 탐지를 시도; 둘 다 없으면 시작 시 눈에 띄는 [경고] 출력.
+> `--ckpt`를 지정하지 않으면 `app.py`가 `weights/base.pt` 자동 탐지를 시도; 둘 다 없으면 시작 시 눈에 띄는 [경고] 출력.
 
 ### 1. 모델 가중치 얻기
 
@@ -210,20 +210,20 @@ pip install -r requirements.txt
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-`weights/best.pt` 확보 후 `--ckpt`로 지정. (직접 학습하면 추가로 `checkpoints/best_tone.pt`가 생성됨; 아래 “학습 가이드” 참조)
+`weights/base.pt` 확보 후 `--ckpt`로 지정. (직접 학습하면 추가로 `checkpoints/base_tone.pt`가 생성됨; 아래 “학습 가이드” 참조)
 
 ### 2. 단일 오디오 추론
 
 ```bash
 # 프로젝트 루트로 cd 불필요: 스크립트는 자기 위치 기준으로 vocab/data 상대경로 해석; 어떤 디렉터리에서나 실행 가능
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 # 출력: 공백 구분 내로 IPA 음절 시퀀스
 ```
 
 ### 3. 배치 평가 (검증 지표)
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text --limit 0
 # TER / ACC / TACC / 성조 정확도 출력
 ```
@@ -235,8 +235,8 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ```bash
 # 어떤 디렉터리에서나 실행 가능 (상대경로는 프로젝트 루트 기준); --ckpt는 상대 또는 절대 경로 가능
-# --ckpt 생략 시 weights/best.pt 자동 시도
-python app.py --ckpt weights/best.pt --port 7860
+# --ckpt 생략 시 weights/base.pt 자동 시도
+python app.py --ckpt weights/base.pt --port 7860
 # 브라우저에서 http://127.0.0.1:7860 열기
 ```
 
@@ -269,7 +269,7 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 ```
 
 - 병음 전체 미세조정 가중치에서 웜스타트: `--warm_start weights/pinyin_ft.pt` (헤드 차원 다르면 자동 건너뛰고 무작위 초기화).
-- `checkpoints/best.pt` (TER 최저) 및 `checkpoints/best_tone.pt` (성조 최고) 출력.
+- `checkpoints/base.pt` (TER 최저) 및 `checkpoints/base_tone.pt` (성조 최고) 출력.
 
 ---
 

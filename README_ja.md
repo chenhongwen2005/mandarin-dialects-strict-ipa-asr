@@ -85,7 +85,7 @@ mandarin-ipa-asr/
 2. **凍結戦略**：`WavFrontend` は常に凍結、`dither` は 0 に固定（ランダムノイズ注入を無効化し特徴の決定性を保証）；エンコーダと IPA ヘッドは**解凍して全パラメータ微調整**（ヘッドのみの学習も可）。
 3. **損失と最適化**：`CTCLoss(blank=0)`；AdamW（`lr=1e-4`、`weight_decay=1e-4`）；`CosineAnnealingLR`（`T_max = steps × epochs`）；勾配クリップ 1.0。
 4. **精度**：bf16 混合精度（`autocast` はエンコーダの順伝播のみに適用、特徴と損失は fp32 を維持）。
-5. **重み保存**：`best.pt`（検証 TER 最低）、`best_tone.pt`（声調精度最高）。
+5. **重み保存**：`base.pt`（検証 TER 最低）、`base_tone.pt`（声調精度最高）。
 6. **旧重みとの互換性**：推論／学習再開時に、旧重みのヘッド命名の残骸を自動的に `ctc_head.*` に再マッピングし、ヘッドが暗黙的に失われるのを防止。
 
 ---
@@ -197,11 +197,11 @@ pip install -r requirements.txt
 > 「たくさん認識された」ように見えるが、実際の発音ではない。
 > 例えば『静夜思』前半は約 10 音節だが、重みなしでは 30 件以上の繰り返し文字化け音節を出力する可能性がある。
 >
-> 正しい使い方（重みは先に `weights/best.pt` へダウンロード、次節参照）：
+> 正しい使い方（重みは先に `weights/base.pt` へダウンロード、次節参照）：
 > ```bash
-> python app.py --ckpt weights/best.pt
+> python app.py --ckpt weights/base.pt
 > ```
-> `--ckpt` を指定しない場合、`app.py` は `weights/best.pt` の自動検索を試みる；両方とも無い場合は起動時に目立つ【警告】を出力。
+> `--ckpt` を指定しない場合、`app.py` は `weights/base.pt` の自動検索を試みる；両方とも無い場合は起動時に目立つ【警告】を出力。
 
 ### 1. モデル重みの取得
 
@@ -212,20 +212,20 @@ pip install -r requirements.txt
 modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 ```
 
-`weights/best.pt` を取得後、`--ckpt` で指定。（独自に学習した場合は追加で `checkpoints/best_tone.pt` が出力される；下の「学習ガイド」参照）
+`weights/base.pt` を取得後、`--ckpt` で指定。（独自に学習した場合は追加で `checkpoints/base_tone.pt` が出力される；下の「学習ガイド」参照）
 
 ### 2. 単発音声の推論
 
 ```bash
 # プロジェクトルートへの cd は不要：スクリプトは自身の位置基準で vocab/data 等の相対パスを解決；任意のディレクトリから起動可
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 # 出力：空白区切りのナロー IPA 音節列
 ```
 
 ### 3. バッチ評価（検証指標）
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text --limit 0
 # TER / ACC / TACC / 声調精度を出力
 ```
@@ -237,8 +237,8 @@ python src/infer.py --eval --ckpt weights/best.pt \
 
 ```bash
 # 任意のディレクトリから起動可（相対パスはプロジェクトルート基準）；--ckpt は相対または絶対パス可
-# --ckpt 省略時は weights/best.pt を自動試行
-python app.py --ckpt weights/best.pt --port 7860
+# --ckpt 省略時は weights/base.pt を自動試行
+python app.py --ckpt weights/base.pt --port 7860
 # ブラウザで http://127.0.0.1:7860 を開く
 ```
 
@@ -271,7 +271,7 @@ python src/train.py $(python -c "import json,sys; c=json.load(open('configs/exam
 ```
 
 - 拼音全微調整重みからウォームスタートする場合：`--warm_start weights/pinyin_ft.pt`（ヘッド次元が異なれば自動スキップしてランダム初期化）。
-- `checkpoints/best.pt`（TER 最低）と `checkpoints/best_tone.pt`（声調最高）を出力。
+- `checkpoints/base.pt`（TER 最低）と `checkpoints/base_tone.pt`（声調最高）を出力。
 
 ---
 

@@ -7,13 +7,13 @@
     runtime/python.exe train_cantonese_lora.py --epochs 30 --batch_size 8
 
 评测（加载已训权重，仅跑验证集）:
-    runtime/python.exe train_cantonese_lora.py --eval --resume out_canto/best.pt
+    runtime/python.exe train_cantonese_lora.py --eval --resume out_canto/cantonese.pt
 
 输出（--output_dir，默认 out_canto/）:
-    best.pt        TER 最优的 LoRA+头权重
-    best_tone.pt   声调准确率最优的权重
-    last.pt        最近一轮
-    metrics.csv    每轮 train_loss / val_TER / val_token_acc / val_tone_acc / val_exact
+    cantonese.pt        TER 最优的 LoRA+头权重
+    cantonese_tone.pt   声调准确率最优的权重
+    cantonese_last.pt   最近一轮
+    metrics.csv         每轮 train_loss / val_TER / val_token_acc / val_tone_acc / val_exact
     preds_val.txt  最近一轮验证集解码结果（uid | ref | pred）
 """
 
@@ -185,6 +185,9 @@ def main():
     ap.add_argument("--val_scp", default=os.path.join(DATA_DIR, "val_scp"))
     ap.add_argument("--val_text", default=os.path.join(DATA_DIR, "val_text"))
     ap.add_argument("--output_dir", default=os.path.join(PROJECT_ROOT, "out_canto"))
+    ap.add_argument("--best_name", default="best",
+                    help="保存/续训的权重基名（不含扩展名），如 cantonese / sichuan；"
+                         "最终产出 <best_name>.pt / <best_name>_tone.pt / <best_name>_last.pt")
     ap.add_argument("--lora_rank", type=int, default=32)
     ap.add_argument("--lora_alpha", type=int, default=32)
     ap.add_argument("--epochs", type=int, default=30)
@@ -308,22 +311,23 @@ def main():
 
         # 保存
         sd = model.lora_state_dict()
+        bn = args.best_name
         torch.save({"model_state_dict": sd, "args": vars(args), "epoch": epoch},
-                   os.path.join(args.output_dir, "last.pt"))
+                   os.path.join(args.output_dir, f"{bn}_last.pt"))
         improved = val["ter"] < best_ter - 1e-4
         if improved:
             best_ter = val["ter"]
             epochs_no_improve = 0
             torch.save({"model_state_dict": sd, "args": vars(args), "epoch": epoch},
-                       os.path.join(args.output_dir, "best.pt"))
-            print(f"  -> 保存 best.pt (TER={best_ter:.4f})")
+                       os.path.join(args.output_dir, f"{bn}.pt"))
+            print(f"  -> 保存 {bn}.pt (TER={best_ter:.4f})")
         else:
             epochs_no_improve += 1
         if val["tone_acc"] > best_tone:
             best_tone = val["tone_acc"]
             torch.save({"model_state_dict": sd, "args": vars(args), "epoch": epoch},
-                       os.path.join(args.output_dir, "best_tone.pt"))
-            print(f"  -> 保存 best_tone.pt (tone_acc={best_tone:.4f})")
+                       os.path.join(args.output_dir, f"{bn}_tone.pt"))
+            print(f"  -> 保存 {bn}_tone.pt (tone_acc={best_tone:.4f})")
 
         # 写出验证集预测
         uids = collect_uids(args.val_scp)

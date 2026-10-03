@@ -12,9 +12,9 @@
 | **四川话** (Sichuan) | 5,869 | 653 | 912 | **0.0829** | 0.9187 | 0.9131 | 0.4196 |
 
 > 说明：
-> - **普通话**为完整微调模型（冻结前端 + 全量微调编码器与 IPA 头），权重 `weights/best.pt`。
+> - **普通话**为完整微调模型（冻结前端 + 全量微调编码器与 IPA 头），权重 `weights/base.pt`。
 > - **粤语 / 四川话**为叠加在 SenseVoiceSmall 上的 **LoRA 适配器**（冻结底座，仅训 LoRA + 方言 CTC 头），
->   权重分别为 `out_canto/best.pt`、`out_sichuan/best.pt`。
+>   权重分别为 `out_canto/cantonese.pt`、`out_sichuan/sichuan.pt`。
 > - 各语言验证集来源/领域不同（普通话为朗读一甲；粤语/四川话为口语句库），故整句完全匹配不可直接横比，
 >   **TER / token 准确率 / 声调准确率** 才是可比的核心指标。
 > - 三语 TER 均处于 0.083–0.096 区间，声调准确率均 ≥ 0.89，证明「音素 + 声调」联合标注下声调信息无丢失。
@@ -39,7 +39,7 @@
 | 训练集 / 验证集 | 8,426 / 1,999 |
 | 词表类数 | 1,580 |
 
-最佳权重：`out_canto/best.pt`（验证集 TER 最低，约 E13）。
+最佳权重：`out_canto/cantonese.pt`（验证集 TER 最低，约 E13）。
 
 ## 四川话（详细）
 
@@ -52,7 +52,7 @@
 | 训练集 / 验证集 | 5,869 / 653 |
 | 词表类数 | 912 |
 
-最佳权重：`out_sichuan/best.pt`（验证集 TER 最低，约 E10）。
+最佳权重：`out_sichuan/sichuan.pt`（验证集 TER 最低，约 E10）。
 
 ## 指标定义
 
@@ -66,7 +66,7 @@
 
 ```bash
 # 普通话（完整模型）
-python src/infer.py --eval --ckpt weights/best.pt \
+python src/infer.py --eval --ckpt weights/base.pt \
     --val_scp data/val.scp --val_text data/val.text
 
 # 粤语（LoRA）

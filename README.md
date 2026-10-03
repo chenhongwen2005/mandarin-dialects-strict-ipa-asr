@@ -16,9 +16,9 @@
 基于 [SenseVoiceSmall](https://github.com/FunAudioLLM/SenseVoice) 编码器，挂载**严式国际音标（IPA）CTC 解码头**，
 实现**普通话、粤语、四川话**三种语言的「音节 + 声调」级语音转写。
 
-- **普通话**：完整微调（冻结前端，全量微调编码器 + IPA 头），权重 `weights/best.pt`。
+- **普通话**：完整微调（冻结前端，全量微调编码器 + IPA 头），权重 `weights/base.pt`。
 - **粤语 / 四川话**：在冻结的 SenseVoiceSmall 上叠加 **LoRA 适配器 + 方言 CTC 头**（仅训 LoRA 与方言头），
-  权重分别 `out_canto/best.pt`、`out_sichuan/best.pt`。
+  权重分别 `out_canto/cantonese.pt`、`out_sichuan/sichuan.pt`。
 
 模型输出为空格分隔的严式 IPA 音节序列，每个音节自带调值符号（如 `ɡ̊wa̠n̚˥`、`x̞wa̠ɪ̯˧˥`），
 即同时给出声母 / 韵母与声调，适合语音学分析、发音评测、声调教学等场景。
@@ -78,9 +78,9 @@ mandarin-ipa-asr/
 ├── data/
 │   ├── cantonese_ipa/          # 粤语 scp/text/vocab/ipa2tone
 │   └── sichuan_ipa/            # 四川话 scp/text/vocab/ipa2tone
-├── weights/best.pt             # 普通话微调权重（不入库，ModelScope 下载）
-├── out_canto/best.pt           # 粤语 LoRA 权重
-├── out_sichuan/best.pt         # 四川话 LoRA 权重
+├── weights/base.pt             # 普通话微调权重（不入库，ModelScope 下载）
+├── out_canto/cantonese.pt       # 粤语 LoRA 权重
+├── out_sichuan/sichuan.pt       # 四川话 LoRA 权重
 └── results/metrics.md          # 三语实测指标与训练曲线
 ```
 
@@ -103,7 +103,7 @@ mandarin-ipa-asr/
 1. 加载预训练 SenseVoiceSmall 的 `WavFrontend` 与 `encoder`（原汉字 CTC 头丢弃），新建 IPA CTC 头。
 2. `WavFrontend` 始终冻结、`dither=0`；编码器与 IPA 头解冻并全量微调。
 3. `CTCLoss(blank=0)`；AdamW（`lr=1e-4`）；`CosineAnnealingLR`；梯度裁剪 1.0；bf16 混合精度。
-4. 保存 `best.pt`（TER 最低）、`best_tone.pt`（声调最高）。
+4. 保存 `base.pt`（TER 最低）、`base_tone.pt`（声调最高）。
 
 ### 粤语 / 四川话：LoRA 适配器
 1. 复用 SenseVoiceSmall 的 `WavFrontend` + `encoder` 前向（均冻结）。
@@ -168,7 +168,7 @@ modelscope download --model QiGuanFuChen/mandarin-ipa-asr --local_dir weights/
 
 ```bash
 # 普通话
-python src/infer.py --wav path/to/audio.wav --ckpt weights/best.pt
+python src/infer.py --wav path/to/audio.wav --ckpt weights/base.pt
 
 # 粤语（LoRA，复用通用推理脚本）
 bash infer_cantonese_lora.sh "path/to/audio.wav"
@@ -180,7 +180,7 @@ bash infer_sichuan_lora.sh "path/to/audio.wav"
 ### 3. 批量评测（验证指标）
 
 ```bash
-python src/infer.py --eval --ckpt weights/best.pt --val_scp data/val.scp --val_text data/val.text
+python src/infer.py --eval --ckpt weights/base.pt --val_scp data/val.scp --val_text data/val.text
 bash infer_cantonese_lora.sh eval      # -> out_canto/preds_val.txt + TER/token/tone
 bash infer_sichuan_lora.sh eval        # -> out_sichuan/preds_val.txt + TER/token/tone
 ```
@@ -189,7 +189,7 @@ bash infer_sichuan_lora.sh eval        # -> out_sichuan/preds_val.txt + TER/toke
 
 ```bash
 # 默认以普通话启动（也可显式 --language 指定初始语言）
-python app.py --ckpt weights/best.pt --port 7860
+python app.py --ckpt weights/base.pt --port 7860
 python app.py --language cantonese --port 7860   # 初始即粤语 LoRA
 python app.py --language sichuan  --port 7860   # 初始即四川话 LoRA
 ```
@@ -220,7 +220,7 @@ python src/train.py \
 ### 粤语 / 四川话（LoRA）
 ```bash
 # 粤语
-./train_cantonese_lora.sh            # 训练（若 last.pt 存在则自动续训）
+./train_cantonese_lora.sh            # 训练（如需续训，显式传 --resume out_canto/cantonese_last.pt）
 ./train_cantonese_lora.sh fresh      # 清空旧权重，从头训练
 ./train_cantonese_lora.sh eval       # 只评测
 
