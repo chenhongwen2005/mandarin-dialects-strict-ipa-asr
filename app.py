@@ -99,9 +99,36 @@ def parse_args():
 STATE = {}
 
 
-def load():
-    a = parse_args()
-    lang = a.language
+_ARGS = None
+
+
+def get_args():
+    """parse_args 的幂等单例：argparse 全局参数只注册一次，重复调用不会冲突。"""
+    global _ARGS
+    if _ARGS is None:
+        _ARGS = parse_args()
+    return _ARGS
+
+
+def _title_markdown(lang):
+    """根据当前语言生成界面标题 Markdown（含切换提示）。"""
+    cfg = LANG_CONFIG.get(lang, LANG_CONFIG["mandarin"])
+    note = ""
+    if not cfg.get("use_converter"):
+        note = "\n\n> 本语言为方言，比对功能请直接填写严式 IPA（暂不支持中文→IPA 转换器）。"
+    return (
+        f"# {cfg['label']} 严式国际音标（IPA）语音识别\n\n"
+        "基于 SenseVoiceSmall 编码器 + 严式 IPA CTC 头。支持上传/录制音频识别，"
+        "并可与真值自动比对差异（逐音节声调对齐高亮），"
+        "以及逐音节分析 IPA 的附加符号与语音特征。"
+        f"\n\n> 当前语言：**{cfg['label']}**。可在上方切换；切换即时生效，无需重启。"
+        + note
+    )
+
+
+def load_for_language(lang):
+    """按语言加载（或热切换）模型到 STATE。支持普通话完整模型与方言 LoRA。"""
+    a = get_args()
     cfg = LANG_CONFIG[lang]
 
     # 未显式覆盖时，按语言取默认 vocab / ipa2tone / ckpt
@@ -115,12 +142,12 @@ def load():
 
     vocab_path = resolve_local_path(vocab_path)
     ipa2tone_path = resolve_local_path(ipa2tone_path)
-    ckpt = resolve_local_path(ckpt)
+    ckpt_path = resolve_local_path(ckpt)
     if a.model_dir and not os.path.isabs(a.model_dir) and os.path.isdir(resolve_local_path(a.model_dir)):
         a.model_dir = resolve_local_path(a.model_dir)
 
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    ckpt_missing = (not a.ckpt) and (not os.path.exists(ckpt))
+    ckpt_missing = (not a.ckpt) and (not os.path.exists(ckpt_path))
 
     if cfg["model_type"] == "full":
         # 普通话：完整微调的 IPA 模型（底座 + IPA 头全量训练）
@@ -133,7 +160,7 @@ def load():
             print("    再以权重启动：")
             print("      python app.py --language mandarin --ckpt weights/best.pt")
             print("=" * 64)
-        model, token2id, dev = build_model(vocab_path, ckpt, a.model_dir, freeze_encoder=True)
+        model, token2id, dev = build_model(vocab_path, ckpt_path, a.model_dir, freeze_encoder=True)
     else:
         # 粤语 / 四川话：在冻结的 SenseVoiceSmall 上注入 LoRA + 方言 CTC 头
         from model_cantonese import SenseVoiceIpaLora
@@ -143,29 +170,82 @@ def load():
         ).to(dev)
         if ckpt_missing:
             print("=" * 64)
-            print(f"【警告】未加载方言 LoRA 权重：{ckpt} 不存在")
+            print(f"【警告】未加载方言 LoRA 权重：{ckpt_path} 不存在")
             print("    当前运行的是【随机初始化】LoRA，识别结果将是无意义的乱码。")
             print(f"    请先训练或下载 {lang} 权重，并以 --ckpt 指定。")
             print("=" * 64)
         else:
-            sd = torch.load(ckpt, map_location="cpu", weights_only=False)
+            sd = torch.load(ckpt_path, map_location="cpu", weights_only=False)
             state = sd.get("model_state_dict", sd)
             missing, unexpected = model.load_state_dict(state, strict=False)
-            print(f"[ckpt] 载入 {ckpt}  (missing={len(missing)}, unexpected={len(unexpected)})")
+            print(f"[ckpt] 载入 {ckpt_path}  (missing={len(missing)}, unexpected={len(unexpected)})")
             if missing:
                 print(f"[ckpt] 未载入键(前10): {missing[:10]}")
         model = model.eval()
 
     id2tok = {v: k for k, v in token2id.items()}
     ipa2tone = json.load(open(ipa2tone_path, encoding="utf-8")) if ipa2tone_path and os.path.exists(ipa2tone_path) else {}
+    tag = os.path.basename(ckpt_path) if (a.ckpt or os.path.exists(ckpt_path)) else "随机初始化(无权重)"
     STATE.update(
         model=model, token2id=token2id, id2tok=id2tok,
         ipa2tone=ipa2tone, dev=dev, max_seconds=a.max_seconds,
         beam=a.beam, vocab_set=set(token2id.keys()),
         language=lang, lang_label=cfg["label"], use_converter=cfg["use_converter"],
+        ckpt_tag=tag,
     )
-    tag = os.path.basename(ckpt) if (a.ckpt or os.path.exists(ckpt)) else "随机初始化(无权重)"
     print(f"[app] 语言={cfg['label']} 模型就绪 device={dev} ckpt={tag}")
+
+
+def load():
+    """启动时按 --language 加载初始模型（供 main 调用，等价于首次切换）。"""
+    a = get_args()
+    load_for_language(a.language)
+
+
+def switch_language(lang_label):
+    """Gradio 界面切换语言：卸载旧模型显存、加载新语言模型并更新相关 UI。
+
+    返回 (title_md 更新, ref_source 更新, 状态文本)。
+    """
+    # label -> key
+    key = None
+    for k, cfg in LANG_CONFIG.items():
+        if cfg["label"] == lang_label:
+            key = k
+            break
+    if key is None:
+        return (_title_markdown(STATE.get("language")), gr.update(), "无效的语言选择。")
+    if STATE.get("language") == key and "model" in STATE:
+        return (gr.update(), gr.update(), f"当前已是 {LANG_CONFIG[key]['label']}，无需切换。")
+
+    # 释放旧模型显存，避免多语言同时驻留撑爆 GPU
+    old = STATE.get("model")
+    if old is not None:
+        del old
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    try:
+        load_for_language(key)
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        traceback.print_exc()
+        return (gr.update(), gr.update(), f"切换失败：{e}")
+
+    cfg = LANG_CONFIG[key]
+    if cfg["use_converter"]:
+        ref_choices = ["转换器(中文)", "直接填IPA"]
+        ref_value = "转换器(中文)"
+        ref_label = ("参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；"
+                     "或直接填空格分隔的 IPA")
+    else:
+        ref_choices = ["直接填IPA"]
+        ref_value = "直接填IPA"
+        ref_label = "参考来源：请直接填空格分隔的方言严式 IPA（方言暂不支持中文转换器）"
+    status = f"已切换至 {cfg['label']}，权重 {STATE.get('ckpt_tag','')}，可开始识别。"
+    return (_title_markdown(key),
+            gr.update(choices=ref_choices, value=ref_value, label=ref_label),
+            status)
 
 
 @torch.no_grad()
@@ -325,16 +405,33 @@ def analyze_ipa_features(audio_path, ipa_text):
 
 
 def build_ui():
-    lang_label = STATE.get("lang_label", "普通话 (Mandarin)")
-    use_converter = STATE.get("use_converter", True)
-    with gr.Blocks(title=f"{lang_label} 严式IPA语音识别") as demo:
-        gr.Markdown(
-            f"# {lang_label} 严式国际音标（IPA）语音识别\n\n"
-            "基于 SenseVoiceSmall 编码器 + 严式 IPA CTC 头。支持上传/录制音频识别，"
-            "并可与真值自动比对差异（逐音节声调对齐高亮），"
-            "以及逐音节分析 IPA 的附加符号与语音特征。\n\n"
-            "> 切换语言请重启并以 `--language {mandarin|cantonese|sichuan}` 启动。"
-        )
+    init_lang = STATE.get("language", "mandarin")
+    init_cfg = LANG_CONFIG.get(init_lang, LANG_CONFIG["mandarin"])
+    use_converter = init_cfg.get("use_converter", True)
+
+    if use_converter:
+        ref_choices0 = ["转换器(中文)", "直接填IPA"]
+        ref_value0 = "转换器(中文)"
+        ref_label0 = ("参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；"
+                      "或直接填空格分隔的 IPA")
+    else:
+        ref_choices0 = ["直接填IPA"]
+        ref_value0 = "直接填IPA"
+        ref_label0 = "参考来源：请直接填空格分隔的方言严式 IPA（方言暂不支持中文转换器）"
+
+    with gr.Blocks(title="汉语普通话与方言严式IPA语音识别") as demo:
+        # ── 语言切换区（顶部，切换即时生效，无需重启）──
+        with gr.Row():
+            lang_sel = gr.Radio(
+                choices=[cfg["label"] for cfg in LANG_CONFIG.values()],
+                value=init_cfg["label"],
+                label="识别语言（切换即时生效，无需重启）",
+                scale=3,
+            )
+            switch_btn = gr.Button("切换语言", variant="primary", scale=1)
+        lang_status = gr.Textbox(label="切换状态", lines=1, interactive=False)
+        title_md = gr.Markdown(_title_markdown(init_lang))
+
         with gr.Tab("识别"):
             audio_in = gr.Audio(label="上传或录制音频", type="filepath",
                                sources=["upload", "microphone"])
@@ -346,13 +443,8 @@ def build_ui():
         with gr.Tab("比对（转换器真值）"):
             audio_in2 = gr.Audio(label="上传或录制音频", type="filepath",
                                 sources=["upload", "microphone"])
-            ref_choices = ["转换器(中文)", "直接填IPA"] if use_converter else ["直接填IPA"]
-            ref_value = "转换器(中文)" if use_converter else "直接填IPA"
             ref_source = gr.Radio(
-                choices=ref_choices, value=ref_value,
-                label=("参考来源：转换器自动把中文转成严式 IPA 真值（与模型同源）；或直接填空格分隔的 IPA"
-                       if use_converter else
-                       "参考来源：请直接填空格分隔的方言严式 IPA（方言暂不支持中文转换器）"))
+                choices=ref_choices0, value=ref_value0, label=ref_label0)
             ref_in = gr.Textbox(
                 label="参考文本",
                 lines=2,
@@ -384,13 +476,19 @@ def build_ui():
             "「转换器」数据来自 nk2028/putonghua-ipa-converter（CC0），与训练词表同源；"
             "训练数据依据授权不公开，详见 README。"
         )
+
+        # ── 语言切换事件（所有组件就绪后绑定）──
+        switch_btn.click(switch_language, [lang_sel],
+                         [title_md, ref_source, lang_status])
+        lang_sel.change(switch_language, [lang_sel],
+                        [title_md, ref_source, lang_status])
     return demo
 
 
 def main():
     load()
     demo = build_ui()
-    a = parse_args()
+    a = get_args()
     demo.launch(server_port=a.port, share=a.share, inbrowser=False)
 
 

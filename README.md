@@ -188,13 +188,16 @@ bash infer_sichuan_lora.sh eval        # -> out_sichuan/preds_val.txt + TER/toke
 ### 4. Gradio 演示（三语切换）
 
 ```bash
-# 默认普通话
+# 默认以普通话启动（也可显式 --language 指定初始语言）
 python app.py --ckpt weights/best.pt --port 7860
-
-# 切换为粤语 / 四川话（方言 LoRA）
-python app.py --language cantonese --port 7860
-python app.py --language sichuan  --port 7860
+python app.py --language cantonese --port 7860   # 初始即粤语 LoRA
+python app.py --language sichuan  --port 7860   # 初始即四川话 LoRA
 ```
+
+**界面内实时切换语言**：启动后，在页面顶部「识别语言」单选框即可在
+**普通话 / 粤语 / 四川话** 之间即时切换，**无需重启服务**。切换时自动卸载旧模型显存、
+加载对应权重，并联动更新「比对」标签页的参考来源选项（方言自动隐藏「中文→IPA 转换器」，
+仅保留直接填 IPA）。
 
 - **识别**标签页：上传或录制音频 → 输出严式 IPA。
 - **比对**标签页：上传音频并填入参考 → 逐音节声调对齐并高亮差异（普通话支持「中文→IPA 转换器」真值；

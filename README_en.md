@@ -47,7 +47,7 @@ bf16 encoder). Full definitions and reproduction commands: [results/metrics.md](
 ## Quick start
 
 ```bash
-# Gradio demo — switch language at launch
+# Gradio demo — initial language at launch (also switchable live in the UI)
 python app.py --ckpt weights/best.pt --port 7860            # Mandarin (default)
 python app.py --language cantonese --port 7860              # Cantonese (LoRA)
 python app.py --language sichuan  --port 7860               # Sichuanese (LoRA)
@@ -61,6 +61,12 @@ bash infer_sichuan_lora.sh  "audio.wav"                     # Sichuanese
 bash infer_cantonese_lora.sh eval
 bash infer_sichuan_lora.sh eval
 ```
+
+After launch, switch **live** between Mandarin / Cantonese / Sichuanese from the
+"识别语言 (Recognition language)" radio at the top of the page — no restart needed.
+Switching unloads the previous model from GPU memory, loads the selected weights, and
+updates the comparison options (dialects hide the Chinese→IPA converter and only accept
+direct IPA input).
 
 Weights are not in the repo. Download the Mandarin model from ModelScope:
 
